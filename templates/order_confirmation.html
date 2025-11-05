@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Confirmació de Comanda - TechShop{% endblock %}
+
+{% block content %}
+<div class="confirmation-container">
+    <div class="confirmation-success">
+        <h2>✅ Comanda Processada Correctament</h2>
+        
+        <div class="order-details">
+            <h3>Detalls de la Comanda</h3>
+            <p><strong>ID de Comanda:</strong> #{{ order.id }}</p>
+            <p><strong>Total:</strong> {{ "%.2f"|format(order.total) }}€</p>
+            <p><strong>Data:</strong> {{ order.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+        </div>
+
+        <div class="confirmation-message">
+            <p>Gràcies per la teva compra! La teva comanda ha estat processada correctament.</p>
+            <p>Rebràs un correu de confirmació amb els detalls de l'enviament.</p>
+        </div>
+
+        <div class="confirmation-actions">
+            <a href="{{ url_for('show_products') }}" class="btn btn-primary">
+                Continuar Comprant
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
