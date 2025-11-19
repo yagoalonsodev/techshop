@@ -36,7 +36,9 @@ TechShop/
 │   └── order_confirmation.html # Confirmació de comanda
 ├── static/                   # Arxius estàtics
 │   ├── css/style.css        # Estils CSS
-│   └── js/main.js           # JavaScript
+│   ├── js/main.js           # JavaScript
+│   └── img/
+│       └── products/        # Carpeta per a les imatges dels productes (per ID)
 ├── database_schema.sql       # Esquema de la base de dades
 ├── init_database.py          # Script per inicialitzar la BD
 ├── techshop.db              # Base de dades SQLite (es genera)
@@ -137,6 +139,18 @@ Les dependències principals del projecte són:
 - **SQLite3**: Base de dades (inclosa amb Python)
 
 Per veure totes les dependències, consulta `requirements.txt`.
+
+## 📷 Imatges de producte
+
+La botiga suporta fins a **4 fotografies per producte**. Per afegir o actualitzar les imatges:
+
+1. Crea una carpeta per ID dins de `static/img/products/`.  
+   Exemple: `static/img/products/1/` per al producte amb ID 1.
+2. Afegeix fins a quatre arxius d'imatge (`.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`).  
+   L'ordre alfabètic dels noms determina quina imatge es mostra com a principal.
+3. Refresca la pàgina de productes: la primera imatge es mostra gran i la resta apareixen com a miniatures sota la principal.
+
+Aquesta organització evita barrejar lògica de negoci i presentació, i manté les imatges accessibles des de la capa estàtica (`/static`).
 
 ## 🎯 Funcionalitats Principals
 

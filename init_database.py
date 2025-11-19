@@ -5,6 +5,9 @@ Crea les taules i insereix dades de prova
 
 import sqlite3
 import os
+from typing import List, Tuple
+
+from werkzeug.security import generate_password_hash
 
 
 def init_database():
@@ -92,6 +95,75 @@ def init_database():
         products
     )
     print(f"✅ {len(products)} productes insertats")
+
+    # Inserir usuaris de prova
+    users = [
+        ("alexa", "alexa@example.com", "Carrer Marina 10, Barcelona"),
+        ("marc", "marc@example.com", "Passeig de Gràcia 25, Barcelona"),
+        ("lucia", "lucia@example.com", "Gran Via 123, Madrid"),
+    ]
+
+    user_ids: List[int] = []
+    password_hash = generate_password_hash("TechShop123", method='pbkdf2:sha256')
+    for username, email, address in users:
+        cursor.execute(
+            "INSERT INTO User (username, password_hash, email, address, created_at) VALUES (?, ?, ?, ?, datetime('now'))",
+            (username, password_hash, email, address)
+        )
+        user_ids.append(cursor.lastrowid)
+    print(f"✅ {len(user_ids)} usuaris creats amb compres de prova")
+
+    # Crear comandes i detalls de comanda per a cada usuari
+    orders_definition = [
+        {
+            "user_index": 0,
+            "items": [(1, 1), (5, 2)],  # MacBook Pro i AirPods
+        },
+        {
+            "user_index": 1,
+            "items": [(2, 1), (7, 1), (10, 1)],  # iPhone, Sony WH, MX Master
+        },
+        {
+            "user_index": 2,
+            "items": [(3, 1), (4, 1), (9, 1)],  # iPad, Apple Watch, Dell XPS
+        },
+        {
+            "user_index": 0,
+            "items": [(8, 2)],  # Samsung Galaxy
+        },
+        {
+            "user_index": 1,
+            "items": [(6, 1), (5, 1)],  # Magic Keyboard, AirPods
+        },
+    ]
+
+    for definition in orders_definition:
+        user_id = user_ids[definition["user_index"]]
+        total = 0.0
+        for product_id, quantity in definition["items"]:
+            cursor.execute("SELECT price FROM Product WHERE id = ?", (product_id,))
+            result = cursor.fetchone()
+            if not result:
+                continue
+            price = float(result[0])
+            total += price * quantity
+
+        cursor.execute(
+            'INSERT INTO "Order" (total, created_at, user_id) VALUES (?, datetime("now"), ?)',
+            (total, user_id)
+        )
+        order_id = cursor.lastrowid
+
+        for product_id, quantity in definition["items"]:
+            cursor.execute(
+                "INSERT INTO OrderItem (order_id, product_id, quantity) VALUES (?, ?, ?)",
+                (order_id, product_id, quantity)
+            )
+            cursor.execute(
+                "UPDATE Product SET stock = stock - ? WHERE id = ?",
+                (quantity, product_id)
+            )
+    print(f"✅ {len(orders_definition)} comandes creades amb detalls associats")
     
     # Confirmar els canvis
     conn.commit()

@@ -5,14 +5,98 @@
 {% block content %}
 <div class="products-container">
     <h2>Productes Disponibles</h2>
+
+    <div class="highlight-sections">
+        {% if user_recommendations %}
+            <section class="recommendations-block">
+                <header class="section-header">
+                    <h3>Productes per a tu</h3>
+                    <p>Basat en les teves compres recents</p>
+                </header>
+                <div class="recommendations-grid">
+                    {% for product, total_sold in user_recommendations %}
+                        <article class="recommendation-card">
+                            <h4>{{ product.name }}</h4>
+                            <p class="recommendation-price">{{ "%.2f"|format(product.price) }}€</p>
+                            <p class="recommendation-meta">Has comprat {{ total_sold }} unitats</p>
+                        </article>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+
+        {% if recommendations %}
+            <section class="recommendations-block">
+                <header class="section-header">
+                    <h3>Tendències de TechShop</h3>
+                    <p>Els productes més venuts a la botiga</p>
+                </header>
+                <div class="trend-carousel">
+                    <button class="trend-nav trend-nav-prev" type="button" aria-label="Producte anterior">&larr;</button>
+                    <div class="trend-slides">
+                        {% for product, total_sold in recommendations %}
+                            {% set trend_images = product_images.get(product.id, []) %}
+                            <article class="trend-slide{% if loop.first %} is-active{% endif %}" data-index="{{ loop.index0 }}" aria-hidden="{{ 'false' if loop.first else 'true' }}">
+                                {% if trend_images %}
+                                    <div class="trend-image">
+                                        <img src="{{ trend_images[0] }}" alt="Producte destacat {{ product.name }}" loading="lazy">
+                                    </div>
+                                {% else %}
+                                    <div class="trend-image trend-image-placeholder">
+                                        <span>Imatge no disponible</span>
+                                    </div>
+                                {% endif %}
+                                <div class="trend-info">
+                                    <h4>{{ product.name }}</h4>
+                                    <p class="trend-price">{{ "%.2f"|format(product.price) }}€</p>
+                                    <p class="trend-meta">{{ total_sold }} unitats venudes</p>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                    <button class="trend-nav trend-nav-next" type="button" aria-label="Producte següent">&rarr;</button>
+                </div>
+            </section>
+        {% endif %}
+    </div>
     
     {% if products %}
         <div class="products-grid">
             {% for product in products %}
                 <div class="product-card">
+                    {% set images = product_images.get(product.id, []) %}
+                    <div class="product-gallery">
+                        {% if images %}
+                            <div class="product-gallery-main">
+                                <img src="{{ images[0] }}"
+                                     alt="Imatge principal de {{ product.name }}"
+                                     loading="lazy"
+                                     class="product-main-image"
+                                     data-default="{{ images[0] }}">
+                            </div>
+                            {% if images|length > 1 %}
+                                <div class="product-gallery-thumbs">
+                                    {% for image in images %}
+                                        <img src="{{ image }}"
+                                             alt="Miniatura de {{ product.name }}"
+                                             loading="lazy"
+                                             class="product-thumb{% if loop.first %} is-active{% endif %}"
+                                             data-image="{{ image }}"
+                                             tabindex="0"
+                                             role="button"
+                                             aria-label="Mostrar imatge {{ loop.index }} de {{ images|length }} per {{ product.name }}">
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="product-gallery-placeholder">
+                                <span>Imatge no disponible</span>
+                            </div>
+                        {% endif %}
+                    </div>
                     <h3>{{ product.name }}</h3>
                     <p class="price">{{ "%.2f"|format(product.price) }}€</p>
-                    <p class="stock">Stock: {{ product.stock }} unitats</p>
+                    <p class="stock">Stock disponible: {{ product.stock }} unitats</p>
                     
                     {% if product.stock > 0 %}
                         <form method="POST" action="{{ url_for('add_to_cart') }}" class="add-to-cart-form">

@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from models import Product, User, Order, OrderItem
 from services.cart_service import CartService
 from services.order_service import OrderService
+from services.recommendation_service import RecommendationService
 
 class Colors:
     GREEN = '\033[92m'
@@ -312,6 +313,111 @@ def test_password_verify():
     valid = check_password_hash(hashed, pwd)
     return assert_true(valid)
 
+
+def _reset_sales_data(conn):
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM OrderItem")
+    cursor.execute('DELETE FROM "Order"')
+    cursor.execute("DELETE FROM Product")
+    cursor.execute("DELETE FROM User")
+    conn.commit()
+
+
+def _insert_sale(conn, order_id, user_id, product_id, quantity, price, stock=100):
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT OR IGNORE INTO User (id, username, password_hash, email, address, created_at) "
+        "VALUES (?, ?, 'hash', 'user@example.com', 'Address Test', datetime('now'))",
+        (user_id, f'user{user_id}',))
+    cursor.execute(
+        "INSERT OR REPLACE INTO Product (id, name, price, stock) VALUES (?, ?, ?, ?)",
+        (product_id, f'Product {product_id}', price, stock))
+    cursor.execute(
+        'INSERT OR REPLACE INTO "Order" (id, total, created_at, user_id) VALUES (?, ?, datetime("now"), ?)',
+        (order_id, price * quantity, user_id))
+    cursor.execute(
+        "INSERT INTO OrderItem (order_id, product_id, quantity) VALUES (?, ?, ?)",
+        (order_id, product_id, quantity))
+    conn.commit()
+
+
+def test_recommendations_by_sales():
+    service = RecommendationService('test.db')
+    conn = sqlite3.connect('test.db')
+    _reset_sales_data(conn)
+    _insert_sale(conn, order_id=1, user_id=1, product_id=1, quantity=5, price=50.0)
+    _insert_sale(conn, order_id=2, user_id=1, product_id=2, quantity=2, price=100.0)
+    _insert_sale(conn, order_id=3, user_id=2, product_id=3, quantity=8, price=20.0)
+    conn.close()
+
+    recommendations = service.get_top_selling_products(limit=2)
+    if not assert_equals(len(recommendations), 2, "Número de recomanacions incorrecte"):
+        return False
+    top_product, top_total = recommendations[0]
+    second_product, second_total = recommendations[1]
+    conditions = [
+        assert_equals(top_product.id, 3, "El producte més venut ha de ser el 3"),
+        assert_equals(top_total, 8, "Unitats venudes esperades per al producte 3"),
+        assert_equals(second_product.id, 1, "El segon producte ha de ser el 1"),
+        assert_equals(second_total, 5, "Unitats venudes esperades per al producte 1"),
+    ]
+    return all(conditions)
+
+
+def test_recommendations_limit_zero():
+    service = RecommendationService('test.db')
+    conn = sqlite3.connect('test.db')
+    _reset_sales_data(conn)
+    _insert_sale(conn, order_id=1, user_id=1, product_id=1, quantity=3, price=10.0)
+    conn.close()
+    recommendations = service.get_top_selling_products(limit=0)
+    return assert_equals(recommendations, [], "Limit zero ha de retornar llista buida")
+
+
+def test_recommendations_no_sales():
+    service = RecommendationService('test.db')
+    conn = sqlite3.connect('test.db')
+    _reset_sales_data(conn)
+    conn.close()
+    recommendations = service.get_top_selling_products(limit=3)
+    return assert_equals(recommendations, [], "Sense vendes no hi ha recomanacions")
+
+
+def test_recommendations_for_user():
+    service = RecommendationService('test.db')
+    conn = sqlite3.connect('test.db')
+    _reset_sales_data(conn)
+    _insert_sale(conn, order_id=1, user_id=1, product_id=1, quantity=4, price=25.0)
+    _insert_sale(conn, order_id=2, user_id=1, product_id=2, quantity=2, price=40.0)
+    _insert_sale(conn, order_id=3, user_id=2, product_id=1, quantity=3, price=25.0)
+    _insert_sale(conn, order_id=4, user_id=2, product_id=3, quantity=5, price=15.0)
+    conn.close()
+
+    user1_recommendations = service.get_top_products_for_user(user_id=1, limit=3)
+    if not assert_equals(len(user1_recommendations), 2, "L'usuari 1 ha de tenir dos productes recomanats"):
+        return False
+    top_user1, qty_user1 = user1_recommendations[0]
+    if not (assert_equals(top_user1.id, 1, "Primer producte usuari 1") and assert_equals(qty_user1, 4, "Quantitat producte 1 usuari 1")):
+        return False
+
+    user2_recommendations = service.get_top_products_for_user(user_id=2, limit=2)
+    if not assert_equals(len(user2_recommendations), 2, "L'usuari 2 ha de tenir dos productes recomanats"):
+        return False
+    top_user2, qty_user2 = user2_recommendations[0]
+    return (assert_equals(top_user2.id, 3, "Primer producte usuari 2") and
+            assert_equals(qty_user2, 5, "Quantitat producte 3 usuari 2"))
+
+
+def test_recommendations_user_without_orders():
+    service = RecommendationService('test.db')
+    conn = sqlite3.connect('test.db')
+    _reset_sales_data(conn)
+    _insert_sale(conn, order_id=1, user_id=1, product_id=1, quantity=1, price=10.0)
+    conn.close()
+
+    recommendations = service.get_top_products_for_user(user_id=999, limit=3)
+    return assert_equals(recommendations, [], "Usuari sense comandes no ha de tenir recomanacions")
+
 def main():
     print(f"\n{Colors.BOLD}{'='*80}\n🧪 SCRIPT DE PRUEBAS EXHAUSTIVO - TECHSHOP\n{'='*80}{Colors.END}\n")
     if os.path.exists('test.db'): os.remove('test.db')
@@ -344,6 +450,11 @@ def main():
         ("Validación - Campos obligatorios", test_required_fields),
         ("Password - Generar hash", test_password_hash),
         ("Password - Verificar hash", test_password_verify),
+        ("Recomendaciones - Ordenar per vendes", test_recommendations_by_sales),
+        ("Recomendaciones - Límite zero", test_recommendations_limit_zero),
+        ("Recomendaciones - Sense vendes", test_recommendations_no_sales),
+        ("Recomendaciones - Per usuari", test_recommendations_for_user),
+        ("Recomendaciones - Usuari sense compres", test_recommendations_user_without_orders),
     ]
     for name, func in tests:
         run_test(name, func)

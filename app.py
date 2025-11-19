@@ -6,11 +6,13 @@ Aplicació web per gestionar un carretó de compres per a TechShop
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 import sqlite3
 from decimal import Decimal
-from typing import List
+from pathlib import Path
+from typing import Dict, List
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import Product, User
 from services.cart_service import CartService
 from services.order_service import OrderService
+from services.recommendation_service import RecommendationService
 
 
 app = Flask(__name__)
@@ -19,6 +21,39 @@ app.secret_key = 'techshop_secret_key'  # En producció, usar una clau segura
 # Inicialitzar serveis
 cart_service = CartService()
 order_service = OrderService()
+recommendation_service = RecommendationService()
+
+IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
+
+
+def _get_product_images(product_id: int, limit: int = 4) -> List[str]:
+    """
+    Construir les rutes d'imatge per a un producte determinat.
+    
+    Args:
+        product_id (int): Identificador del producte.
+        limit (int): Nombre màxim d'imatges a retornar.
+        
+    Returns:
+        List[str]: Llista d'URLs relatives a les imatges del producte.
+    """
+    images_dir = Path(app.static_folder) / 'img' / 'products' / str(product_id)
+    if not images_dir.exists():
+        return []
+
+    image_urls: List[str] = []
+    for image_path in sorted(images_dir.iterdir()):
+        if not image_path.is_file():
+            continue
+        if image_path.suffix.lower() not in IMAGE_EXTENSIONS:
+            continue
+        image_urls.append(
+            url_for('static', filename=f'img/products/{product_id}/{image_path.name}')
+        )
+        if len(image_urls) >= limit:
+            break
+
+    return image_urls
 
 
 @app.route('/')
@@ -29,6 +64,12 @@ def show_products():
     Returns:
         str: Pàgina HTML amb la llista de productes
     """
+    recommendations = recommendation_service.get_top_selling_products(limit=3)
+    user_recommendations = []
+    user_id = session.get('user_id')
+    if user_id:
+        user_recommendations = recommendation_service.get_top_products_for_user(user_id=user_id, limit=3)
+
     try:
         with sqlite3.connect('techshop.db') as conn:
             cursor = conn.cursor()
@@ -36,6 +77,7 @@ def show_products():
             products_data = cursor.fetchall()
             
             products = []
+            product_images: Dict[int, List[str]] = {}
             for row in products_data:
                 product = Product(
                     id=row[0],
@@ -44,12 +86,25 @@ def show_products():
                     stock=row[3]
                 )
                 products.append(product)
+                product_images[product.id] = _get_product_images(product.id)
             
-            return render_template('products.html', products=products)
+            return render_template(
+                'products.html',
+                products=products,
+                recommendations=recommendations,
+                user_recommendations=user_recommendations,
+                product_images=product_images
+            )
             
     except sqlite3.Error as e:
         flash(f"Error carregant productes: {str(e)}", 'error')
-        return render_template('products.html', products=[])
+        return render_template(
+            'products.html',
+            products=[],
+            recommendations=recommendations,
+            user_recommendations=user_recommendations,
+            product_images={}
+        )
 
 
 @app.route('/add_to_cart', methods=['POST'])
@@ -129,7 +184,9 @@ def checkout():
                         name=result[1],
                         price=Decimal(str(result[2]))
                     )
-                    cart_products.append((product, quantity))
+                    cart_products.append(
+                        (product, quantity, _get_product_images(product.id))
+                    )
                     
     except sqlite3.Error as e:
         flash(f"Error carregant productes del carretó: {str(e)}", 'error')
@@ -195,6 +252,7 @@ def process_order():
                 (username, password_hash, email, address)
             )
             user_id = cursor.lastrowid
+            session['user_id'] = user_id
             conn.commit()
             
             # Crear la comanda

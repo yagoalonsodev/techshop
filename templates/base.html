@@ -8,11 +8,18 @@
 </head>
 <body>
     <header>
-        <h1>TechShop</h1>
-        <nav>
-            <a href="{{ url_for('show_products') }}">Productes</a>
-            <a href="{{ url_for('checkout') }}">Carretó</a>
-        </nav>
+        <div class="site-header">
+            <h1 class="site-title">
+                <a href="{{ url_for('show_products') }}" aria-label="Anar a la pàgina de productes">TechShop</a>
+            </h1>
+            <nav>
+                <a href="{{ url_for('show_products') }}">Productes</a>
+                <a href="{{ url_for('checkout') }}" class="cart-link" aria-label="Veure carretó">
+                    <span class="sr-only">Carretó</span>
+                    <img src="{{ url_for('static', filename='img/carrito/1.png') }}" alt="" id="cart-icon">
+                </a>
+            </nav>
+        </div>
     </header>
 
     <main>

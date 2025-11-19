@@ -10,11 +10,20 @@
         <div class="cart-summary">
             <h3>Resum del Carretó</h3>
             <div class="cart-items">
-                {% for product, quantity in cart_products %}
+                {% for product, quantity, images in cart_products %}
                     <div class="cart-item">
-                        <span class="product-name">{{ product.name }}</span>
-                        <span class="quantity">x{{ quantity }}</span>
-                        <span class="price">{{ "%.2f"|format(product.price * quantity) }}€</span>
+                        <div class="cart-item-image">
+                            {% if images %}
+                                <img src="{{ images[0] }}" alt="Imatge de {{ product.name }}" loading="lazy">
+                            {% else %}
+                                <div class="cart-item-placeholder">Sense imatge</div>
+                            {% endif %}
+                        </div>
+                        <div class="cart-item-details">
+                            <span class="product-name">{{ product.name }}</span>
+                            <span class="quantity">x{{ quantity }}</span>
+                        </div>
+                        <span class="cart-item-price">{{ "%.2f"|format(product.price * quantity) }}€</span>
                         
                         <form method="POST" action="{{ url_for('remove_from_cart') }}" class="remove-form">
                             <input type="hidden" name="product_id" value="{{ product.id }}">
