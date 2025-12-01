@@ -3,6 +3,8 @@
 import sqlite3, os
 from decimal import Decimal
 from werkzeug.security import generate_password_hash, check_password_hash
+
+from app import app, cart_service as web_cart_service  # per a tests d'integració Flask
 from models import Product, User, Order, OrderItem
 from services.cart_service import CartService
 from services.order_service import OrderService
@@ -927,6 +929,137 @@ def test_recommendations_db_error_returns_empty():
     finally:
         sqlite3.connect = original_connect
 
+
+# =========================
+# TESTOS D'INTEGRACIÓ FLASK
+# =========================
+
+
+def test_web_get_products_page():
+    """La pàgina principal de productes ha de carregar sense errors."""
+    app.config["TESTING"] = True
+    client = app.test_client()
+    resp = client.get("/")
+    return assert_equals(resp.status_code, 200, "La portada ha de respondre 200")
+
+
+def test_web_checkout_empty_cart():
+    """El checkout amb el carretó buit ha d'informar a l'usuari."""
+    app.config["TESTING"] = True
+    web_cart_service.clear_cart()
+    client = app.test_client()
+    resp = client.get("/checkout")
+    ok_status = assert_equals(resp.status_code, 200, "Checkout ha de respondre 200")
+    ok_msg = assert_true(
+        b"El teu carret&#243; est&#224; buit" in resp.data
+        or b"El teu carret\xc3\xb3 est\xc3\xa0 buit" in resp.data,
+        "El missatge de carretó buit ha d'aparèixer al checkout",
+    )
+    return ok_status and ok_msg
+
+
+def test_web_add_to_cart_missing_csrf():
+    """
+    Sense token CSRF, una petició POST al backend ha de ser rebutjada.
+    Això verifica que la protecció CSRF està activa.
+    """
+    app.config["TESTING"] = True
+    app.config["WTF_CSRF_ENABLED"] = True
+    client = app.test_client()
+    resp = client.post("/add_to_cart", data={"product_id": 1, "quantity": 1})
+    return assert_equals(resp.status_code, 400, "Sense CSRF token s'ha d'obtenir un 400")
+
+
+def test_web_process_order_missing_fields_no_order_created():
+    """
+    Si falten camps obligatoris al checkout, s'ha de redirigir al checkout
+    i no s'ha de crear cap comanda nova.
+    """
+    app.config["TESTING"] = True
+    app.config["WTF_CSRF_ENABLED"] = False  # desactivem CSRF per provar només validacions
+    client = app.test_client()
+
+    # Comptar ordres actuals a la BD principal de l'aplicació
+    conn = sqlite3.connect("techshop.db")
+    cursor = conn.cursor()
+    cursor.execute('SELECT COUNT(*) FROM "Order"')
+    before_count = cursor.fetchone()[0]
+    conn.close()
+
+    resp = client.post("/process_order", data={}, follow_redirects=True)
+
+    conn = sqlite3.connect("techshop.db")
+    cursor = conn.cursor()
+    cursor.execute('SELECT COUNT(*) FROM "Order"')
+    after_count = cursor.fetchone()[0]
+    conn.close()
+
+    ok_redirect = assert_equals(resp.status_code, 200, "S'ha de redirigir al checkout (amb follow_redirects)")
+    ok_no_new_order = assert_equals(
+        before_count, after_count, "No s'ha de crear cap comanda si falten camps obligatoris"
+    )
+    ok_flash = assert_true(
+        b"Tots els camps s&#243;n obligatoris" in resp.data
+        or b"Tots els camps s\xc3\xb3n obligatoris" in resp.data,
+        "S'ha de mostrar el missatge de camps obligatoris",
+    )
+    return ok_redirect and ok_no_new_order and ok_flash
+
+
+def test_web_full_checkout_flow_creates_order_and_clears_cart():
+    """
+    Flux complet de compra via web:
+    - Es prepara un producte i un carretó
+    - Es fa POST a /process_order amb dades vàlides
+    - S'ha de crear una comanda i buidar el carretó web
+    """
+    app.config["TESTING"] = True
+    app.config["WTF_CSRF_ENABLED"] = False  # facilitem el test sense CSRF
+
+    # Assegurar producte existent a la BD de l'aplicació
+    conn = sqlite3.connect("techshop.db")
+    cursor = conn.cursor()
+    cursor.execute("CREATE TABLE IF NOT EXISTS Product (id INTEGER PRIMARY KEY, name TEXT, price REAL, stock INTEGER)")
+    cursor.execute(
+        "INSERT OR REPLACE INTO Product (id, name, price, stock) VALUES (200, 'Test Web Product', 9.99, 10)"
+    )
+    conn.commit()
+
+    # Comptar ordres abans
+    cursor.execute('CREATE TABLE IF NOT EXISTS "Order" (id INTEGER PRIMARY KEY, total REAL, created_at TEXT, user_id INTEGER)')
+    cursor.execute('SELECT COUNT(*) FROM "Order"')
+    before_orders = cursor.fetchone()[0]
+    conn.close()
+
+    # Preparar el carretó de la web
+    web_cart_service.clear_cart()
+    web_cart_service.add_to_cart(200, 2)
+
+    client = app.test_client()
+    resp = client.post(
+        "/process_order",
+        data={
+            "username": "webuser_test",
+            "password": "Password123",
+            "email": "webuser@test.com",
+            "address": "Carrer de Prova 123, Barcelona",
+        },
+        follow_redirects=True,
+    )
+
+    # Verificar que la comanda s'ha creat
+    conn = sqlite3.connect("techshop.db")
+    cursor = conn.cursor()
+    cursor.execute('SELECT COUNT(*) FROM "Order"')
+    after_orders = cursor.fetchone()[0]
+    conn.close()
+
+    ok_status = assert_equals(resp.status_code, 200, "El flux complet ha d'acabar amb resposta 200")
+    ok_new_order = assert_true(after_orders == before_orders + 1, "S'hauria d'haver creat una nova comanda")
+    ok_cart_empty = assert_equals(len(web_cart_service.get_cart_contents()), 0, "El carretó web s'ha de buidar")
+
+    return ok_status and ok_new_order and ok_cart_empty
+
 def main():
     print(f"\n{Colors.BOLD}{'='*80}\n🧪 SCRIPT DE PRUEBAS EXHAUSTIVO - TECHSHOP\n{'='*80}{Colors.END}\n")
     if os.path.exists('test.db'): os.remove('test.db')
@@ -1000,6 +1133,11 @@ def main():
         ("Recomendaciones - Usuari sense compres", test_recommendations_user_without_orders),
         ("Recomendaciones - user_id None", test_recommendations_user_none),
         ("Recomendaciones - Error de BD retorna vacía", test_recommendations_db_error_returns_empty),
+        ("Web - GET / (productes)", test_web_get_products_page),
+        ("Web - GET /checkout amb carretó buit", test_web_checkout_empty_cart),
+        ("Web - POST /add_to_cart sense CSRF ha de fallar", test_web_add_to_cart_missing_csrf),
+        ("Web - POST /process_order sense camps obligatoris no crea comanda", test_web_process_order_missing_fields_no_order_created),
+        ("Web - Flux complet de checkout crea comanda i buida carretó", test_web_full_checkout_flow_creates_order_and_clears_cart),
     ]
     for name, func in tests:
         run_test(name, func)
