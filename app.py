@@ -3,20 +3,46 @@ Aplicació principal TechShop
 Aplicació web per gestionar un carretó de compres per a TechShop
 """
 
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+import os
 import sqlite3
 from decimal import Decimal
 from pathlib import Path
 from typing import Dict, List
+
+from dotenv import load_dotenv
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask_wtf import CSRFProtect
+from flask_wtf.csrf import generate_csrf
 from werkzeug.security import generate_password_hash, check_password_hash
+
 from models import Product, User
 from services.cart_service import CartService
 from services.order_service import OrderService
 from services.recommendation_service import RecommendationService
 
 
+# Carregar variables d'entorn des del fitxer .env si existeix
+load_dotenv()
+
 app = Flask(__name__)
-app.secret_key = 'techshop_secret_key'  # En producció, usar una clau segura
+
+# SECRET_KEY únicament des de variable d'entorn (.env)
+secret_key = os.environ.get("SECRET_KEY")
+if not secret_key:
+    raise RuntimeError(
+        "SECRET_KEY no configurada. Afegeix SECRET_KEY al fitxer .env a la "
+        "arrel del projecte, per exemple:\n\nSECRET_KEY=una-clau-molt-secreta"
+    )
+app.config["SECRET_KEY"] = secret_key
+
+# Protecció CSRF per totes les peticions POST
+csrf = CSRFProtect(app)
+
+
+@app.context_processor
+def inject_csrf_token():
+    """Permet usar {{ csrf_token() }} als formularis HTML sense WTForms."""
+    return dict(csrf_token=generate_csrf)
 
 # Inicialitzar serveis
 cart_service = CartService()
@@ -239,37 +265,71 @@ def process_order():
         flash("L'adreça d'enviament ha de tenir almenys 10 caràcters", 'error')
         return redirect(url_for('checkout'))
     
-    # Crear usuari amb contrasenya hashejada
+    # Autenticació / registre d'usuari i creació de comanda en una única transacció
+    conn = None
     try:
-        with sqlite3.connect('techshop.db') as conn:
-            cursor = conn.cursor()
-            
-            # Generar hash segur de la contrasenya
-            password_hash = generate_password_hash(password, method='pbkdf2:sha256')
-            
+        conn = sqlite3.connect('techshop.db')
+        cursor = conn.cursor()
+
+        # Comprovar si l'usuari ja existeix
+        cursor.execute(
+            "SELECT id, password_hash FROM User WHERE username = ?",
+            (username,),
+        )
+        existing_user = cursor.fetchone()
+
+        if existing_user:
+            user_id, stored_hash = existing_user
+
+            # Verificar la contrasenya de l'usuari existent
+            if not check_password_hash(stored_hash, password):
+                conn.rollback()
+                flash("Contrasenya incorrecta per a l'usuari indicat", "error")
+                return redirect(url_for("checkout"))
+
+            # Opcional: actualitzar dades de contacte
             cursor.execute(
-                "INSERT INTO User (username, password_hash, email, address, created_at) VALUES (?, ?, ?, ?, datetime('now'))",
-                (username, password_hash, email, address)
+                "UPDATE User SET email = ?, address = ? WHERE id = ?",
+                (email, address, user_id),
+            )
+        else:
+            # Registrar un nou usuari amb contrasenya hashejada
+            password_hash = generate_password_hash(password, method="pbkdf2:sha256")
+            cursor.execute(
+                "INSERT INTO User (username, password_hash, email, address, created_at) "
+                "VALUES (?, ?, ?, ?, datetime('now'))",
+                (username, password_hash, email, address),
             )
             user_id = cursor.lastrowid
-            session['user_id'] = user_id
-            conn.commit()
-            
-            # Crear la comanda
-            cart_contents = cart_service.get_cart_contents()
-            success, message, order_id = order_service.create_order(cart_contents, user_id)
-            
-            if success:
-                cart_service.clear_cart()
-                flash(f"Comanda processada correctament! ID: {order_id}", 'success')
-                return redirect(url_for('order_confirmation', order_id=order_id))
-            else:
-                flash(message, 'error')
-                return redirect(url_for('checkout'))
-                
+
+        # Desa l'usuari a la sessió un cop validat / creat
+        session["user_id"] = user_id
+
+        # Crear la comanda utilitzant el servei, dins de la mateixa transacció
+        cart_contents = cart_service.get_cart_contents()
+        success, message, order_id = order_service.create_order_in_transaction(
+            conn, cart_contents, user_id
+        )
+
+        if not success:
+            conn.rollback()
+            flash(message, "error")
+            return redirect(url_for("checkout"))
+
+        # Tot correcte: confirmar canvis i netejar el carretó
+        conn.commit()
+        cart_service.clear_cart()
+        flash(f"Comanda processada correctament! ID: {order_id}", "success")
+        return redirect(url_for("order_confirmation", order_id=order_id))
+
     except sqlite3.Error as e:
-        flash(f"Error processant la comanda: {str(e)}", 'error')
-        return redirect(url_for('checkout'))
+        if conn is not None:
+            conn.rollback()
+        flash(f"Error processant la comanda: {str(e)}", "error")
+        return redirect(url_for("checkout"))
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 @app.route('/order_confirmation/<int:order_id>')

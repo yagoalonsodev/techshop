@@ -15,62 +15,62 @@ class OrderService:
     
     def __init__(self, db_path: str = "techshop.db"):
         self.db_path = db_path
-    
-    def create_order(self, cart: Dict[int, int], user_id: int) -> Tuple[bool, str, int]:
+
+    def create_order_in_transaction(
+        self, conn: sqlite3.Connection, cart: Dict[int, int], user_id: int
+    ) -> Tuple[bool, str, int]:
         """
-        Crear una nova comanda quan l'usuari finalitza la compra.
-        
-        Args:
-            cart (Dict[int, int]): Carretó amb {product_id: quantity}
-            user_id (int): ID de l'usuari que fa la comanda
-            
-        Returns:
-            Tuple[bool, str, int]: (èxit, missatge, order_id)
-            
-        Raises:
-            ValueError: Si el carretó està buit o l'usuari no existeix
+        Crear una nova comanda utilitzant una connexió existent.
+
+        Aquesta funció NO fa commit/rollback: és responsabilitat del codi
+        que la crida (permetent transaccions que inclouen usuari + comanda).
         """
         if not cart:
             return False, "El carretó està buit", 0
-        
+
+        cursor = conn.cursor()
+
+        # Verificar que l'usuari existeix
+        cursor.execute("SELECT id FROM User WHERE id = ?", (user_id,))
+        if not cursor.fetchone():
+            return False, "Usuari no trobat", 0
+
+        # Calcular total de la comanda
+        total = self._calculate_order_total(cart, cursor)
+        if total == Decimal("0.00"):
+            return False, "Error calculant el total de la comanda", 0
+
+        # Crear la comanda
+        cursor.execute(
+            'INSERT INTO "Order" (total, created_at, user_id) VALUES (?, ?, ?)',
+            (float(total), datetime.now(), user_id),
+        )
+        order_id = cursor.lastrowid
+
+        # Crear les línies de comanda i actualitzar inventari
+        for product_id, quantity in cart.items():
+            # Crear OrderItem
+            cursor.execute(
+                "INSERT INTO OrderItem (order_id, product_id, quantity) VALUES (?, ?, ?)",
+                (order_id, product_id, quantity),
+            )
+
+            # Actualitzar inventari
+            cursor.execute(
+                "UPDATE Product SET stock = stock - ? WHERE id = ?",
+                (quantity, product_id),
+            )
+
+        return True, f"Comanda creada correctament. Total: {total}", order_id
+
+    def create_order(self, cart: Dict[int, int], user_id: int) -> Tuple[bool, str, int]:
+        """
+        Versió compatible que crea una nova comanda obrint la seva pròpia connexió.
+        Es manté per compatibilitat amb els tests i altres usos.
+        """
         try:
             with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
-                
-                # Verificar que l'usuari existeix
-                cursor.execute("SELECT id FROM User WHERE id = ?", (user_id,))
-                if not cursor.fetchone():
-                    return False, "Usuari no trobat", 0
-                
-                # Calcular total de la comanda
-                total = self._calculate_order_total(cart, cursor)
-                if total == Decimal('0.00'):
-                    return False, "Error calculant el total de la comanda", 0
-                
-                # Crear la comanda
-                cursor.execute(
-                    "INSERT INTO \"Order\" (total, created_at, user_id) VALUES (?, ?, ?)",
-                    (float(total), datetime.now(), user_id)
-                )
-                order_id = cursor.lastrowid
-                
-                # Crear les línies de comanda i actualitzar inventari
-                for product_id, quantity in cart.items():
-                    # Crear OrderItem
-                    cursor.execute(
-                        "INSERT INTO OrderItem (order_id, product_id, quantity) VALUES (?, ?, ?)",
-                        (order_id, product_id, quantity)
-                    )
-                    
-                    # Actualitzar inventari
-                    cursor.execute(
-                        "UPDATE Product SET stock = stock - ? WHERE id = ?",
-                        (quantity, product_id)
-                    )
-                
-                conn.commit()
-                return True, f"Comanda creada correctament. Total: {total}", order_id
-                
+                return self.create_order_in_transaction(conn, cart, user_id)
         except sqlite3.Error as e:
             return False, f"Error creant la comanda: {str(e)}", 0
     
