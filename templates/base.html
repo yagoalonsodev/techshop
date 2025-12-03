@@ -14,6 +14,12 @@
             </h1>
             <nav>
                 <a href="{{ url_for('show_products') }}">Productes</a>
+                {% if current_user %}
+                    <span class="user-info">Hola, {{ current_user.username }}</span>
+                    <a href="{{ url_for('logout') }}" class="btn-logout">Tancar Sessió</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="btn-login">Iniciar Sessió</a>
+                {% endif %}
                 <a href="{{ url_for('checkout') }}" class="cart-link" aria-label="Veure carretó">
                     <span class="sr-only">Carretó</span>
                     <img src="{{ url_for('static', filename='img/carrito/1.png') }}" alt="" id="cart-icon">

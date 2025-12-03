@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Iniciar Sessió - TechShop{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <h2>Iniciar Sessió</h2>
+    
+    <form method="POST" action="{{ url_for('login') }}" id="login-form" class="auth-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <div class="form-group">
+            <label for="username">Nom d'usuari:</label>
+            <input type="text" 
+                   id="username" 
+                   name="username" 
+                   minlength="4" 
+                   maxlength="20" 
+                   pattern="[a-zA-Z0-9_]+"
+                   title="Entre 4 i 20 caràcters. Només lletres, números i guions baixos (_)"
+                   required
+                   class="form-input"
+                   autocomplete="username">
+            <small>Entre 4 i 20 caràcters (només lletres, números i guions baixos)</small>
+        </div>
+
+        <div class="form-group">
+            <label for="password">Contrasenya:</label>
+            <input type="password" 
+                   id="password" 
+                   name="password" 
+                   minlength="8"
+                   maxlength="100"
+                   pattern="^(?=.*[A-Za-z])(?=.*\d).{8,}$"
+                   title="Mínim 8 caràcters, ha de contenir almenys una lletra i un número"
+                   required
+                   class="form-input"
+                   autocomplete="current-password">
+            <small>Mínim 8 caràcters, amb almenys una lletra i un número</small>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-large">
+                Iniciar Sessió
+            </button>
+            <a href="{{ url_for('register') }}" class="btn btn-secondary">
+                Crear Compte
+            </a>
+            <a href="{{ url_for('show_products') }}" class="btn btn-link">
+                Tornar a Productes
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

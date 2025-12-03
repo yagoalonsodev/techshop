@@ -173,6 +173,43 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 350);
         });
     });
+
+    // Gestió del checkout: mostrar/ocultar seccions segons l'elecció
+    const btnLogin = document.getElementById('btn-login');
+    const btnGuest = document.getElementById('btn-guest');
+    const btnBackFromLogin = document.getElementById('btn-back-from-login');
+    const btnBackFromGuest = document.getElementById('btn-back-from-guest');
+    const checkoutChoice = document.getElementById('checkout-choice');
+    const loginSection = document.getElementById('login-section');
+    const guestSection = document.getElementById('guest-section');
+
+    if (btnLogin && checkoutChoice && loginSection) {
+        btnLogin.addEventListener('click', function() {
+            checkoutChoice.style.display = 'none';
+            loginSection.style.display = 'block';
+        });
+    }
+
+    if (btnGuest && checkoutChoice && guestSection) {
+        btnGuest.addEventListener('click', function() {
+            checkoutChoice.style.display = 'none';
+            guestSection.style.display = 'block';
+        });
+    }
+
+    if (btnBackFromLogin && checkoutChoice && loginSection) {
+        btnBackFromLogin.addEventListener('click', function() {
+            loginSection.style.display = 'none';
+            checkoutChoice.style.display = 'block';
+        });
+    }
+
+    if (btnBackFromGuest && checkoutChoice && guestSection) {
+        btnBackFromGuest.addEventListener('click', function() {
+            guestSection.style.display = 'none';
+            checkoutChoice.style.display = 'block';
+        });
+    }
 });
 
 /**

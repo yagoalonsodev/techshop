@@ -5,7 +5,7 @@ Implementa la lògica de negoci per gestionar el carretó sense barrejar amb pre
 
 import sqlite3
 from decimal import Decimal
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Any
 from models import Product
 
 
@@ -14,15 +14,29 @@ class CartService:
     
     def __init__(self, db_path: str = "techshop.db"):
         self.db_path = db_path
-        self.cart = {}  # {product_id: quantity}
     
-    def add_to_cart(self, product_id: int, quantity: int) -> Tuple[bool, str]:
+    def _get_cart(self, session: Any) -> Dict[int, int]:
+        """
+        Obtenir el carretó de la sessió. Si no existeix, crear-lo buit.
+        
+        Args:
+            session: Sessió de Flask
+            
+        Returns:
+            Dict[int, int]: Carretó {product_id: quantity}
+        """
+        if 'cart' not in session:
+            session['cart'] = {}
+        return session['cart']
+    
+    def add_to_cart(self, product_id: int, quantity: int, session: Any) -> Tuple[bool, str]:
         """
         Afegir un producte al carretó.
         
         Args:
             product_id (int): ID del producte a afegir
             quantity (int): Quantitat a afegir
+            session: Sessió de Flask per guardar el carretó
             
         Returns:
             Tuple[bool, str]: (èxit, missatge)
@@ -38,29 +52,38 @@ class CartService:
         if not stock_ok:
             return False, stock_msg
         
+        # Obtenir carretó de la sessió
+        cart = self._get_cart(session)
+        
         # Comprovar límit de 5 unitats per producte
-        current_quantity = self.cart.get(product_id, 0)
+        current_quantity = cart.get(product_id, 0)
         total_quantity = current_quantity + quantity
         
         if total_quantity > 5:
             return False, f"No es pot superar el límit de 5 unitats per producte. Actual: {current_quantity}, intentant afegir: {quantity}"
         
-        # Afegir al carretó
-        self.cart[product_id] = total_quantity
+        # Afegir al carretó i guardar a la sessió
+        cart[product_id] = total_quantity
+        session['cart'] = cart
+        session.modified = True  # Marcar la sessió com modificada
         return True, f"Producte afegit al carretó. Quantitat total: {total_quantity}"
     
-    def remove_from_cart(self, product_id: int) -> Tuple[bool, str]:
+    def remove_from_cart(self, product_id: int, session: Any) -> Tuple[bool, str]:
         """
         Eliminar un producte del carretó.
         
         Args:
             product_id (int): ID del producte a eliminar
+            session: Sessió de Flask per guardar el carretó
             
         Returns:
             Tuple[bool, str]: (èxit, missatge)
         """
-        if product_id in self.cart:
-            del self.cart[product_id]
+        cart = self._get_cart(session)
+        if product_id in cart:
+            del cart[product_id]
+            session['cart'] = cart
+            session.modified = True  # Marcar la sessió com modificada
             return True, "Producte eliminat del carretó"
         else:
             return False, "Producte no trobat al carretó"
@@ -94,32 +117,46 @@ class CartService:
         except sqlite3.Error as e:
             return False, f"Error accedint a la base de dades: {str(e)}"
     
-    def get_cart_contents(self) -> Dict[int, int]:
+    def get_cart_contents(self, session: Any) -> Dict[int, int]:
         """
         Obtenir el contingut actual del carretó.
         
+        Args:
+            session: Sessió de Flask
+            
         Returns:
             Dict[int, int]: {product_id: quantity}
         """
-        return self.cart.copy()
+        cart = self._get_cart(session)
+        return cart.copy()
     
-    def clear_cart(self):
-        """Buida el carretó."""
-        self.cart.clear()
+    def clear_cart(self, session: Any):
+        """
+        Buida el carretó.
+        
+        Args:
+            session: Sessió de Flask
+        """
+        session['cart'] = {}
+        session.modified = True  # Marcar la sessió com modificada
     
-    def get_cart_total(self) -> Decimal:
+    def get_cart_total(self, session: Any) -> Decimal:
         """
         Calcular el total del carretó.
         
+        Args:
+            session: Sessió de Flask
+            
         Returns:
             Decimal: Total del carretó
         """
         total = Decimal('0.00')
+        cart = self._get_cart(session)
         
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                for product_id, quantity in self.cart.items():
+                for product_id, quantity in cart.items():
                     cursor.execute("SELECT price FROM Product WHERE id = ?", (product_id,))
                     result = cursor.fetchone()
                     if result:

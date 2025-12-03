@@ -4,11 +4,44 @@ import sqlite3, os
 from decimal import Decimal
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from app import app, cart_service as web_cart_service  # per a tests d'integració Flask
+from app import app  # per a tests d'integració Flask
 from models import Product, User, Order, OrderItem
 from services.cart_service import CartService
 from services.order_service import OrderService
 from services.recommendation_service import RecommendationService
+
+
+class MockSession:
+    """Classe mock per simular una sessió de Flask als tests unitaris."""
+    def __init__(self):
+        self._data = {}
+    
+    def get(self, key, default=None):
+        return self._data.get(key, default)
+    
+    def __contains__(self, key):
+        return key in self._data
+    
+    def __setitem__(self, key, value):
+        self._data[key] = value
+    
+    def __getitem__(self, key):
+        return self._data[key]
+    
+    def __delitem__(self, key):
+        if key in self._data:
+            del self._data[key]
+    
+    def clear(self):
+        self._data.clear()
+    
+    @property
+    def modified(self):
+        return True
+    
+    @modified.setter
+    def modified(self, value):
+        pass
 
 class Colors:
     GREEN = '\033[92m'
@@ -101,12 +134,13 @@ def test_orderitem():
 
 def test_cart_add():
     service = CartService('test.db')
+    session = MockSession()
     conn = sqlite3.connect('test.db')
     cursor = conn.cursor()
     cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (1, 'Test', 100.00, 10)")
     conn.commit()
     conn.close()
-    success, _ = service.add_to_cart(1, 3)
+    success, _ = service.add_to_cart(1, 3, session)
     return assert_true(success)
 
 def test_cart_add_multiple_calls_respect_limit_and_stock():
@@ -115,17 +149,18 @@ def test_cart_add_multiple_calls_respect_limit_and_stock():
     com el stock disponible.
     """
     service = CartService('test.db')
+    session = MockSession()
     conn = sqlite3.connect('test.db')
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
     cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (90, 'Multi', 10.00, 5)")
     conn.commit()
     conn.close()
-    success1, _ = service.add_to_cart(90, 2)
-    success2, _ = service.add_to_cart(90, 2)
+    success1, _ = service.add_to_cart(90, 2, session)
+    success2, _ = service.add_to_cart(90, 2, session)
     # Ja portem 4 unitats, afegir-ne 2 més ha de fallar (límit 5 i stock 5)
-    success3, _ = service.add_to_cart(90, 2)
-    contents = service.get_cart_contents()
+    success3, _ = service.add_to_cart(90, 2, session)
+    contents = service.get_cart_contents(session)
     conditions = [
         assert_true(success1),
         assert_true(success2),
@@ -136,78 +171,85 @@ def test_cart_add_multiple_calls_respect_limit_and_stock():
 
 def test_cart_stock():
     service = CartService('test.db')
+    session = MockSession()
     conn = sqlite3.connect('test.db')
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
     cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (2, 'Low', 50.00, 2)")
     conn.commit()
     conn.close()
-    success, _ = service.add_to_cart(2, 5)
+    success, _ = service.add_to_cart(2, 5, session)
     return assert_false(success)
 
 def test_cart_stock_exact_boundary():
     """Afegir exactament el stock disponible ha de ser possible."""
     service = CartService('test.db')
+    session = MockSession()
     conn = sqlite3.connect('test.db')
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
     cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (21, 'Exact', 50.00, 3)")
     conn.commit()
     conn.close()
-    success, _ = service.add_to_cart(21, 3)
+    success, _ = service.add_to_cart(21, 3, session)
     return assert_true(success, "Afegir exactament el stock disponible hauria de ser vàlid")
 
 def test_cart_limit():
     service = CartService('test.db')
+    session = MockSession()
     conn = sqlite3.connect('test.db')
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
     cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (3, 'Test', 100.00, 20)")
     conn.commit()
     conn.close()
-    service.add_to_cart(3, 3)
-    success, _ = service.add_to_cart(3, 3)
+    service.add_to_cart(3, 3, session)
+    success, _ = service.add_to_cart(3, 3, session)
     return assert_false(success)
 
 def test_cart_limit_exact_boundary():
     """Comprovar que es permet exactament 5 unitats però no més."""
     service = CartService('test.db')
+    session = MockSession()
     conn = sqlite3.connect('test.db')
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
     cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (33, 'Limit', 10.00, 10)")
     conn.commit()
     conn.close()
-    success, _ = service.add_to_cart(33, 5)
+    success, _ = service.add_to_cart(33, 5, session)
     # Ja hem arribat a 5, afegir-ne una més ha de fallar
-    success2, _ = service.add_to_cart(33, 1)
+    success2, _ = service.add_to_cart(33, 1, session)
     return assert_true(success) and assert_false(success2)
 
 def test_cart_negative():
     service = CartService('test.db')
+    session = MockSession()
     conn = sqlite3.connect('test.db')
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
     cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (4, 'Test', 100.00, 10)")
     conn.commit()
     conn.close()
-    success, _ = service.add_to_cart(4, -1)
+    success, _ = service.add_to_cart(4, -1, session)
     return assert_false(success)
 
 def test_cart_zero_quantity():
     """La quantitat 0 no és vàlida al carretó."""
     service = CartService('test.db')
+    session = MockSession()
     conn = sqlite3.connect('test.db')
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
     cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (50, 'ZeroTest', 10.00, 10)")
     conn.commit()
     conn.close()
-    success, _ = service.add_to_cart(50, 0)
+    success, _ = service.add_to_cart(50, 0, session)
     return assert_false(success, "No s'hauria d'acceptar quantitat 0")
 
 def test_cart_non_int_quantity():
     service = CartService('test.db')
+    session = MockSession()
     conn = sqlite3.connect('test.db')
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
@@ -215,35 +257,38 @@ def test_cart_non_int_quantity():
     conn.commit()
     conn.close()
     # Pasar una cadena en lloc d'un enter ha de fallar
-    success, _ = service.add_to_cart(40, "3")
+    success, _ = service.add_to_cart(40, "3", session)
     return assert_false(success, "add_to_cart ha d'ignorar quantitats no enteres")
 
 def test_cart_remove():
     service = CartService('test.db')
+    session = MockSession()
     conn = sqlite3.connect('test.db')
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
     cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (5, 'Test', 100.00, 10)")
     conn.commit()
     conn.close()
-    service.add_to_cart(5, 2)
-    success, _ = service.remove_from_cart(5)
+    service.add_to_cart(5, 2, session)
+    success, _ = service.remove_from_cart(5, session)
     return assert_true(success)
 
 def test_cart_remove_nonexistent():
     service = CartService('test.db')
-    success, _ = service.remove_from_cart(999)
+    session = MockSession()
+    success, _ = service.remove_from_cart(999, session)
     return assert_false(success)
 
 def test_cart_add_product_not_found():
     """Intentar afegir un producte que no existeix a BD ha de fallar amb missatge adequat."""
     service = CartService('test.db')
+    session = MockSession()
     conn = sqlite3.connect('test.db')
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
     conn.commit()
     conn.close()
-    success, msg = service.add_to_cart(999, 1)
+    success, msg = service.add_to_cart(999, 1, session)
     return assert_false(success, "No s'hauria de poder afegir un producte inexistent") and \
            assert_true("Producte no trobat" in msg)
 
@@ -265,19 +310,21 @@ def test_cart_validate_stock_db_error():
 
 def test_cart_contents():
     service = CartService('test.db')
+    session = MockSession()
     conn = sqlite3.connect('test.db')
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
     cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (6, 'Test', 100.00, 10)")
     conn.commit()
     conn.close()
-    service.add_to_cart(6, 2)
-    contents = service.get_cart_contents()
+    service.add_to_cart(6, 2, session)
+    contents = service.get_cart_contents(session)
     return assert_true(6 in contents and contents[6] == 2)
 
 def test_cart_multiple_products_contents():
     """Comprovar que el carretó pot contenir múltiples productes amb quantitats correctes."""
     service = CartService('test.db')
+    session = MockSession()
     conn = sqlite3.connect('test.db')
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
@@ -285,9 +332,9 @@ def test_cart_multiple_products_contents():
     cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (71, 'P71', 20.00, 10)")
     conn.commit()
     conn.close()
-    service.add_to_cart(70, 1)
-    service.add_to_cart(71, 2)
-    contents = service.get_cart_contents()
+    service.add_to_cart(70, 1, session)
+    service.add_to_cart(71, 2, session)
+    contents = service.get_cart_contents(session)
     conditions = [
         assert_equals(contents.get(70), 1, "Quantitat per al producte 70 incorrecta"),
         assert_equals(contents.get(71), 2, "Quantitat per al producte 71 incorrecta"),
@@ -296,6 +343,7 @@ def test_cart_multiple_products_contents():
 
 def test_cart_total():
     service = CartService('test.db')
+    session = MockSession()
     conn = sqlite3.connect('test.db')
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
@@ -303,9 +351,9 @@ def test_cart_total():
     cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (8, 'P2', 200.00, 10)")
     conn.commit()
     conn.close()
-    service.add_to_cart(7, 2)
-    service.add_to_cart(8, 1)
-    total = service.get_cart_total()
+    service.add_to_cart(7, 2, session)
+    service.add_to_cart(8, 1, session)
+    total = service.get_cart_total(session)
     return assert_equals(total, Decimal('400.00'))
 
 def test_cart_total_with_missing_product():
@@ -314,6 +362,7 @@ def test_cart_total_with_missing_product():
     get_cart_total ha d'ignorar-lo i no petar.
     """
     service = CartService('test.db')
+    session = MockSession()
     conn = sqlite3.connect('test.db')
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
@@ -321,25 +370,26 @@ def test_cart_total_with_missing_product():
     conn.commit()
     conn.close()
     # Afegim un producte vàlid i un d'inexistent
-    service.add_to_cart(20, 1)
-    service.cart[21] = 2  # 21 no existeix a BD
-    total = service.get_cart_total()
+    service.add_to_cart(20, 1, session)
+    session['cart'][21] = 2  # 21 no existeix a BD
+    total = service.get_cart_total(session)
     return assert_equals(total, Decimal('100.00'), "Només s'ha de comptar el producte existent")
 
 def test_cart_clear():
     service = CartService('test.db')
+    session = MockSession()
     conn = sqlite3.connect('test.db')
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
     cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (9, 'Test', 100.00, 10)")
     conn.commit()
     conn.close()
-    service.add_to_cart(9, 3)
-    service.clear_cart()
-    contents = service.get_cart_contents()
+    service.add_to_cart(9, 3, session)
+    service.clear_cart(session)
+    contents = service.get_cart_contents(session)
     # clear_cart ha de ser idempotent (es pot cridar més d'un cop sense error)
-    service.clear_cart()
-    contents2 = service.get_cart_contents()
+    service.clear_cart(session)
+    contents2 = service.get_cart_contents(session)
     return assert_true(len(contents) == 0) and assert_true(len(contents2) == 0)
 
 def test_order_create():
@@ -946,8 +996,9 @@ def test_web_get_products_page():
 def test_web_checkout_empty_cart():
     """El checkout amb el carretó buit ha d'informar a l'usuari."""
     app.config["TESTING"] = True
-    web_cart_service.clear_cart()
+    app.config["WTF_CSRF_ENABLED"] = False  # desactivem CSRF per facilitar el test
     client = app.test_client()
+    # El carretó buit és l'estat per defecte (sessió nova)
     resp = client.get("/checkout")
     ok_status = assert_equals(resp.status_code, 200, "Checkout ha de respondre 200")
     ok_msg = assert_true(
@@ -972,7 +1023,7 @@ def test_web_add_to_cart_missing_csrf():
 
 def test_web_process_order_missing_fields_no_order_created():
     """
-    Si falten camps obligatoris al checkout, s'ha de redirigir al checkout
+    Si falten camps obligatoris al checkout (com a invitado), s'ha de redirigir al checkout
     i no s'ha de crear cap comanda nova.
     """
     app.config["TESTING"] = True
@@ -982,11 +1033,13 @@ def test_web_process_order_missing_fields_no_order_created():
     # Comptar ordres actuals a la BD principal de l'aplicació
     conn = sqlite3.connect("techshop.db")
     cursor = conn.cursor()
+    cursor.execute('CREATE TABLE IF NOT EXISTS "Order" (id INTEGER PRIMARY KEY, total REAL, created_at TEXT, user_id INTEGER)')
     cursor.execute('SELECT COUNT(*) FROM "Order"')
     before_count = cursor.fetchone()[0]
     conn.close()
 
-    resp = client.post("/process_order", data={}, follow_redirects=True)
+    # Intentar processar comanda com a invitado sense camps
+    resp = client.post("/process_order", data={"checkout_type": "guest"}, follow_redirects=True)
 
     conn = sqlite3.connect("techshop.db")
     cursor = conn.cursor()
@@ -1031,14 +1084,23 @@ def test_web_full_checkout_flow_creates_order_and_clears_cart():
     before_orders = cursor.fetchone()[0]
     conn.close()
 
-    # Preparar el carretó de la web
-    web_cart_service.clear_cart()
-    web_cart_service.add_to_cart(200, 2)
-
+    # Preparar el carretó de la web fent POST a /add_to_cart (utilitza la sessió del client)
     client = app.test_client()
+    # Afegir producte al carretó via POST (la sessió es manté al mateix client)
+    client.post("/add_to_cart", data={"product_id": 200, "quantity": 2})
+    
+    # Verificar que el producte s'ha afegit al carretó
+    resp_checkout_before = client.get("/checkout")
+    ok_product_in_cart = assert_true(
+        b"Test Web Product" in resp_checkout_before.data,
+        "El producte ha d'estar al carretó abans de processar la comanda"
+    )
+    
+    # Processar la comanda com a invitado
     resp = client.post(
         "/process_order",
         data={
+            "checkout_type": "guest",
             "username": "webuser_test",
             "password": "Password123",
             "email": "webuser@test.com",
@@ -1054,11 +1116,359 @@ def test_web_full_checkout_flow_creates_order_and_clears_cart():
     after_orders = cursor.fetchone()[0]
     conn.close()
 
+    # Verificar que el carretó s'ha buidat després de processar la comanda
+    resp_checkout_after = client.get("/checkout")
+    ok_cart_empty = assert_true(
+        b"El teu carret&#243; est&#224; buit" in resp_checkout_after.data
+        or b"El teu carret\xc3\xb3 est\xc3\xa0 buit" in resp_checkout_after.data,
+        "El carretó web s'ha de buidar després de processar la comanda"
+    )
+
     ok_status = assert_equals(resp.status_code, 200, "El flux complet ha d'acabar amb resposta 200")
     ok_new_order = assert_true(after_orders == before_orders + 1, "S'hauria d'haver creat una nova comanda")
-    ok_cart_empty = assert_equals(len(web_cart_service.get_cart_contents()), 0, "El carretó web s'ha de buidar")
 
     return ok_status and ok_new_order and ok_cart_empty
+
+
+def test_web_login_success():
+    """Login exitós amb credencials vàlides."""
+    app.config["TESTING"] = True
+    app.config["WTF_CSRF_ENABLED"] = False
+    
+    # Crear usuari a la BD
+    conn = sqlite3.connect("techshop.db")
+    cursor = conn.cursor()
+    cursor.execute("CREATE TABLE IF NOT EXISTS User (id INTEGER PRIMARY KEY, username TEXT, password_hash TEXT, email TEXT, address TEXT, created_at TEXT)")
+    password_hash = generate_password_hash("Password123")
+    cursor.execute(
+        "INSERT OR REPLACE INTO User (username, password_hash, email, created_at) VALUES (?, ?, ?, datetime('now'))",
+        ("test_login_user", password_hash, "test@example.com")
+    )
+    conn.commit()
+    conn.close()
+    
+    client = app.test_client()
+    resp = client.post(
+        "/login",
+        data={"username": "test_login_user", "password": "Password123"},
+        follow_redirects=True
+    )
+    
+    ok_status = assert_equals(resp.status_code, 200, "Login ha de respondre 200")
+    ok_redirect = assert_true(
+        b"Productes" in resp.data or b"productes" in resp.data,
+        "Després del login s'ha de redirigir a productes"
+    )
+    
+    # Verificar que la sessió conté user_id
+    # Necessitem fer una nova petició per verificar la sessió
+    resp2 = client.get("/")
+    ok_user_id = assert_true(
+        b"test_login_user" in resp2.data or b"Hola" in resp2.data,
+        "La sessió ha de contenir user_id i mostrar el nom d'usuari"
+    )
+    
+    return ok_status and ok_redirect and ok_user_id
+
+
+def test_web_login_wrong_password():
+    """Login falla amb contrasenya incorrecta."""
+    app.config["TESTING"] = True
+    app.config["WTF_CSRF_ENABLED"] = False
+    
+    # Crear usuari a la BD
+    conn = sqlite3.connect("techshop.db")
+    cursor = conn.cursor()
+    password_hash = generate_password_hash("Password123")
+    cursor.execute(
+        "INSERT OR REPLACE INTO User (username, password_hash, email, created_at) VALUES (?, ?, ?, datetime('now'))",
+        ("test_login_user2", password_hash, "test2@example.com")
+    )
+    conn.commit()
+    conn.close()
+    
+    client = app.test_client()
+    resp = client.post(
+        "/login",
+        data={"username": "test_login_user2", "password": "WrongPassword"},
+        follow_redirects=True
+    )
+    
+    ok_status = assert_equals(resp.status_code, 200, "Login ha de respondre 200")
+    ok_error = assert_true(
+        b"Contrasenya incorrecta" in resp.data or b"incorrecta" in resp.data,
+        "S'ha de mostrar missatge d'error de contrasenya"
+    )
+    
+    # Verificar que NO s'ha creat sessió fent una petició a la pàgina principal
+    resp2 = client.get("/")
+    ok_no_session = assert_false(
+        b"test_login_user2" in resp2.data and b"Hola" in resp2.data,
+        "No s'ha de crear sessió amb contrasenya incorrecta"
+    )
+    
+    return ok_status and ok_error and ok_no_session
+
+
+def test_web_register_success():
+    """Registre exitós de nou usuari."""
+    app.config["TESTING"] = True
+    app.config["WTF_CSRF_ENABLED"] = False
+    
+    # Netejar usuari si existeix
+    conn = sqlite3.connect("techshop.db")
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM User WHERE username = 'test_register_user'")
+    conn.commit()
+    conn.close()
+    
+    client = app.test_client()
+    resp = client.post(
+        "/register",
+        data={
+            "username": "test_register_user",
+            "password": "Password123",
+            "email": "register@test.com"
+        },
+        follow_redirects=True
+    )
+    
+    ok_status = assert_equals(resp.status_code, 200, "Registre ha de respondre 200")
+    ok_redirect = assert_true(
+        b"Productes" in resp.data or b"productes" in resp.data,
+        "Després del registre s'ha de redirigir a productes"
+    )
+    
+    # Verificar que s'ha creat l'usuari a la BD
+    conn = sqlite3.connect("techshop.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM User WHERE username = 'test_register_user'")
+    user = cursor.fetchone()
+    conn.close()
+    
+    ok_user_created = assert_true(user is not None, "S'ha de crear l'usuari a la BD")
+    
+    # Verificar que s'ha creat sessió fent una petició a la pàgina principal
+    resp2 = client.get("/")
+    ok_session = assert_true(
+        b"test_register_user" in resp2.data or b"Hola" in resp2.data,
+        "S'ha de crear sessió després del registre i mostrar el nom d'usuari"
+    )
+    
+    return ok_status and ok_redirect and ok_user_created and ok_session
+
+
+def test_web_register_duplicate_username():
+    """Registre falla amb nom d'usuari duplicat."""
+    app.config["TESTING"] = True
+    app.config["WTF_CSRF_ENABLED"] = False
+    
+    # Crear usuari existent
+    conn = sqlite3.connect("techshop.db")
+    cursor = conn.cursor()
+    password_hash = generate_password_hash("Password123")
+    cursor.execute(
+        "INSERT OR REPLACE INTO User (username, password_hash, email, created_at) VALUES (?, ?, ?, datetime('now'))",
+        ("test_duplicate_user", password_hash, "duplicate@test.com")
+    )
+    conn.commit()
+    conn.close()
+    
+    client = app.test_client()
+    resp = client.post(
+        "/register",
+        data={
+            "username": "test_duplicate_user",
+            "password": "Password123",
+            "email": "new@test.com"
+        },
+        follow_redirects=True
+    )
+    
+    ok_status = assert_equals(resp.status_code, 200, "Registre ha de respondre 200")
+    ok_error = assert_true(
+        b"ja est&#224; en &#250;s" in resp.data 
+        or b"ja est" in resp.data 
+        or "en ús".encode('utf-8') in resp.data,
+        "S'ha de mostrar missatge d'error de nom d'usuari duplicat"
+    )
+    
+    return ok_status and ok_error
+
+
+def test_web_logout():
+    """Logout tanca la sessió correctament."""
+    app.config["TESTING"] = True
+    app.config["WTF_CSRF_ENABLED"] = False
+    
+    # Crear usuari i iniciar sessió
+    conn = sqlite3.connect("techshop.db")
+    cursor = conn.cursor()
+    password_hash = generate_password_hash("Password123")
+    cursor.execute(
+        "INSERT OR REPLACE INTO User (username, password_hash, email, created_at) VALUES (?, ?, ?, datetime('now'))",
+        ("test_logout_user", password_hash, "logout@test.com")
+    )
+    conn.commit()
+    cursor.execute("SELECT id FROM User WHERE username = 'test_logout_user'")
+    user_id = cursor.fetchone()[0]
+    conn.close()
+    
+    client = app.test_client()
+    with client.session_transaction() as sess:
+        sess["user_id"] = user_id
+    
+    resp = client.get("/logout", follow_redirects=True)
+    
+    ok_status = assert_equals(resp.status_code, 200, "Logout ha de respondre 200")
+    
+    # Verificar que la sessió s'ha netejat
+    with client.session_transaction() as sess:
+        ok_session_cleared = assert_true(
+            sess.get("user_id") is None,
+            "La sessió s'ha de netejar després del logout"
+        )
+    
+    return ok_status and ok_session_cleared
+
+
+def test_web_checkout_authenticated_user():
+    """Checkout amb usuari autenticat només demana adreça."""
+    app.config["TESTING"] = True
+    app.config["WTF_CSRF_ENABLED"] = False
+    
+    # Crear usuari i producte
+    conn = sqlite3.connect("techshop.db")
+    cursor = conn.cursor()
+    password_hash = generate_password_hash("Password123")
+    cursor.execute(
+        "INSERT OR REPLACE INTO User (username, password_hash, email, created_at) VALUES (?, ?, ?, datetime('now'))",
+        ("test_auth_checkout", password_hash, "auth@test.com")
+    )
+    cursor.execute("CREATE TABLE IF NOT EXISTS Product (id INTEGER PRIMARY KEY, name TEXT, price REAL, stock INTEGER)")
+    cursor.execute(
+        "INSERT OR REPLACE INTO Product (id, name, price, stock) VALUES (300, 'Test Auth Product', 19.99, 5)"
+    )
+    conn.commit()
+    cursor.execute("SELECT id FROM User WHERE username = 'test_auth_checkout'")
+    user_id = cursor.fetchone()[0]
+    conn.close()
+    
+    client = app.test_client()
+    with client.session_transaction() as sess:
+        sess["user_id"] = user_id
+    
+    # Afegir producte al carretó
+    client.post("/add_to_cart", data={"product_id": 300, "quantity": 1})
+    
+    # Anar al checkout
+    resp = client.get("/checkout")
+    
+    ok_status = assert_equals(resp.status_code, 200, "Checkout ha de respondre 200")
+    ok_user_info = assert_true(
+        b"test_auth_checkout" in resp.data,
+        "S'ha de mostrar el nom d'usuari autenticat"
+    )
+    ok_only_address = assert_true(
+        b"Adre&#231;a d'enviament" in resp.data or "Adreça d'enviament".encode('utf-8') in resp.data,
+        "S'ha de mostrar el camp d'adreça"
+    )
+    ok_no_username_field = assert_false(
+        b'name="username"' in resp.data and b'name="password"' in resp.data,
+        "No s'han de mostrar camps de username/password per a usuaris autenticats"
+    )
+    
+    return ok_status and ok_user_info and ok_only_address and ok_no_username_field
+
+
+def test_web_checkout_guest_flow():
+    """Checkout com a invitado demana tots els camps."""
+    app.config["TESTING"] = True
+    app.config["WTF_CSRF_ENABLED"] = False
+    
+    # Crear producte
+    conn = sqlite3.connect("techshop.db")
+    cursor = conn.cursor()
+    cursor.execute("CREATE TABLE IF NOT EXISTS Product (id INTEGER PRIMARY KEY, name TEXT, price REAL, stock INTEGER)")
+    cursor.execute(
+        "INSERT OR REPLACE INTO Product (id, name, price, stock) VALUES (400, 'Test Guest Product', 29.99, 10)"
+    )
+    conn.commit()
+    conn.close()
+    
+    client = app.test_client()
+    # Afegir producte al carretó
+    client.post("/add_to_cart", data={"product_id": 400, "quantity": 1})
+    
+    # Anar al checkout
+    resp = client.get("/checkout")
+    
+    ok_status = assert_equals(resp.status_code, 200, "Checkout ha de respondre 200")
+    ok_choice = assert_true(
+        "Iniciar Sessió".encode('utf-8') in resp.data or "Comprar com a Invitat".encode('utf-8') in resp.data,
+        "S'ha de mostrar opció d'iniciar sessió o comprar com a invitado"
+    )
+    
+    return ok_status and ok_choice
+
+
+def test_web_checkout_authenticated_creates_order():
+    """Checkout amb usuari autenticat crea comanda correctament."""
+    app.config["TESTING"] = True
+    app.config["WTF_CSRF_ENABLED"] = False
+    
+    # Crear usuari i producte
+    conn = sqlite3.connect("techshop.db")
+    cursor = conn.cursor()
+    password_hash = generate_password_hash("Password123")
+    cursor.execute(
+        "INSERT OR REPLACE INTO User (username, password_hash, email, created_at) VALUES (?, ?, ?, datetime('now'))",
+        ("test_auth_order", password_hash, "authorder@test.com")
+    )
+    cursor.execute("CREATE TABLE IF NOT EXISTS Product (id INTEGER PRIMARY KEY, name TEXT, price REAL, stock INTEGER)")
+    cursor.execute(
+        "INSERT OR REPLACE INTO Product (id, name, price, stock) VALUES (500, 'Test Auth Order Product', 39.99, 10)"
+    )
+    cursor.execute('CREATE TABLE IF NOT EXISTS "Order" (id INTEGER PRIMARY KEY, total REAL, created_at TEXT, user_id INTEGER)')
+    cursor.execute('CREATE TABLE IF NOT EXISTS OrderItem (id INTEGER PRIMARY KEY, order_id INTEGER, product_id INTEGER, quantity INTEGER)')
+    conn.commit()
+    cursor.execute("SELECT id FROM User WHERE username = 'test_auth_order'")
+    user_id = cursor.fetchone()[0]
+    cursor.execute('SELECT COUNT(*) FROM "Order"')
+    before_orders = cursor.fetchone()[0]
+    conn.close()
+    
+    client = app.test_client()
+    with client.session_transaction() as sess:
+        sess["user_id"] = user_id
+    
+    # Afegir producte al carretó
+    client.post("/add_to_cart", data={"product_id": 500, "quantity": 2})
+    
+    # Processar comanda (només adreça)
+    resp = client.post(
+        "/process_order",
+        data={
+            "checkout_type": "authenticated",
+            "address": "Carrer Autenticat 456, Barcelona"
+        },
+        follow_redirects=True
+    )
+    
+    # Verificar que s'ha creat la comanda
+    conn = sqlite3.connect("techshop.db")
+    cursor = conn.cursor()
+    cursor.execute('SELECT COUNT(*) FROM "Order"')
+    after_orders = cursor.fetchone()[0]
+    conn.close()
+    
+    ok_status = assert_equals(resp.status_code, 200, "Processar comanda ha de respondre 200")
+    ok_order_created = assert_true(
+        after_orders == before_orders + 1,
+        "S'ha de crear una nova comanda"
+    )
+    
+    return ok_status and ok_order_created
 
 def main():
     print(f"\n{Colors.BOLD}{'='*80}\n🧪 SCRIPT DE PRUEBAS EXHAUSTIVO - TECHSHOP\n{'='*80}{Colors.END}\n")
@@ -1138,6 +1548,14 @@ def main():
         ("Web - POST /add_to_cart sense CSRF ha de fallar", test_web_add_to_cart_missing_csrf),
         ("Web - POST /process_order sense camps obligatoris no crea comanda", test_web_process_order_missing_fields_no_order_created),
         ("Web - Flux complet de checkout crea comanda i buida carretó", test_web_full_checkout_flow_creates_order_and_clears_cart),
+        ("Web - Login exitós", test_web_login_success),
+        ("Web - Login amb contrasenya incorrecta", test_web_login_wrong_password),
+        ("Web - Registre exitós", test_web_register_success),
+        ("Web - Registre amb nom d'usuari duplicat", test_web_register_duplicate_username),
+        ("Web - Logout tanca sessió", test_web_logout),
+        ("Web - Checkout amb usuari autenticat només demana adreça", test_web_checkout_authenticated_user),
+        ("Web - Checkout com a invitado mostra opcions", test_web_checkout_guest_flow),
+        ("Web - Checkout autenticat crea comanda", test_web_checkout_authenticated_creates_order),
     ]
     for name, func in tests:
         run_test(name, func)
