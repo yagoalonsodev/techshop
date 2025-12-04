@@ -60,8 +60,12 @@ def login():
 def get_google_oauth():
     """Obtener instancia de Google OAuth desde la app"""
     from flask import current_app
-    from authlib.integrations.flask_client import OAuth
-    oauth = OAuth(current_app)
+    
+    # Obtener la instancia de OAuth almacenada en app.config
+    oauth = current_app.config.get('OAUTH')
+    if not oauth:
+        raise RuntimeError("OAuth no está configurado. Verifica que GOOGLE_OAUTH_CLIENT_ID y GOOGLE_OAUTH_CLIENT_SECRET estén en .env")
+    
     return oauth.google
 
 

@@ -60,6 +60,9 @@ google = oauth.register(
     }
 )
 
+# Almacenar la instancia de OAuth en app.config para acceso desde blueprints
+app.config['OAUTH'] = oauth
+
 
 def get_current_language():
     """
