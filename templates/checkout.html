@@ -25,7 +25,7 @@
                         </div>
                         <span class="cart-item-price">{{ "%.2f"|format(product.price * quantity) }}€</span>
                         
-                        <form method="POST" action="{{ url_for('remove_from_cart') }}" class="remove-form">
+                        <form method="POST" action="{{ url_for('main.remove_from_cart') }}" class="remove-form">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="product_id" value="{{ product.id }}">
                             <button type="submit" class="btn btn-danger btn-small">{{ _('remove') }}</button>
@@ -44,7 +44,7 @@
             
             {% if current_user %}
                 {# Usuari autenticat: només demanar adreça #}
-                <form method="POST" action="{{ url_for('process_order') }}" id="checkout-form">
+                <form method="POST" action="{{ url_for('main.process_order') }}" id="checkout-form">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="checkout_type" value="authenticated">
                     
@@ -71,7 +71,7 @@
                         <button type="submit" class="btn btn-success btn-large">
                             {{ _('btn_confirm') }} {{ _('checkout') }}
                         </button>
-                        <a href="{{ url_for('show_products') }}" class="btn btn-secondary">
+                        <a href="{{ url_for('main.show_products') }}" class="btn btn-secondary">
                             {{ _('continue_shopping') }}
                         </a>
                     </div>
@@ -93,9 +93,9 @@
                 {# Formulari d'inici de sessió (ocult inicialment) #}
                 <div id="login-section" class="checkout-section" style="display: none;">
                     <h4>{{ _('page_login') }}</h4>
-                    <form method="POST" action="{{ url_for('login') }}" id="checkout-login-form">
+                    <form method="POST" action="{{ url_for('auth.login') }}" id="checkout-login-form">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="next" value="{{ url_for('checkout') }}">
+                        <input type="hidden" name="next" value="{{ url_for('main.checkout') }}">
                         
                         <div class="form-group">
                             <label for="login-username">{{ _('label_username') }}</label>
@@ -125,7 +125,7 @@
                             <button type="submit" class="btn btn-primary">
                                 {{ _('btn_login') }}
                             </button>
-                            <a href="{{ url_for('register') }}" class="btn btn-link">
+                            <a href="{{ url_for('auth.register') }}" class="btn btn-link">
                                 {{ _('btn_register') }}
                             </a>
                             <button type="button" id="btn-back-from-login" class="btn btn-secondary">
@@ -138,7 +138,7 @@
                 {# Formulari d'invitat (ocult inicialment) #}
                 <div id="guest-section" class="checkout-section" style="display: none;">
                     <h4>{{ _('checkout_as_guest') }}</h4>
-            <form method="POST" action="{{ url_for('process_order') }}" id="checkout-form">
+            <form method="POST" action="{{ url_for('main.process_order') }}" id="checkout-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="checkout_type" value="guest">
                         
@@ -216,7 +216,7 @@
         <div class="empty-cart">
             <h3>{{ _('cart_empty') }}</h3>
             <p>{{ _('add_products_to_cart') }}</p>
-            <a href="{{ url_for('show_products') }}" class="btn btn-primary">
+            <a href="{{ url_for('main.show_products') }}" class="btn btn-primary">
                 {{ _('view_products') }}
             </a>
         </div>

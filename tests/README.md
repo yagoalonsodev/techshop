@@ -27,14 +27,19 @@ tests/
 
 ### Ejecutar todos los tests (recomendado):
 ```bash
-python run_tests.py
-# O también:
-./run_tests.sh
+# Desde la raíz del proyecto:
+python3 tests/run_tests.py
+
+# O usando el script bash:
+bash tests/run_tests.sh
+
+# O desde dentro de la carpeta tests:
+cd tests && python3 run_tests.py
 ```
 
 ### Ejecutar directamente el test runner:
 ```bash
-python tests/test_runner.py
+python3 -m tests.test_runner
 ```
 
 ### Ejecutar un módulo específico:
@@ -68,7 +73,7 @@ run_test("Cart - Agregar producto", test_cart_service.test_cart_add)
 
 ## 📝 Scripts de Ejecución
 
-- `run_tests.py`: Script principal para ejecutar todos los tests (recomendado)
-- `run_tests.sh`: Script bash alternativo
+- `tests/run_tests.py`: Script principal para ejecutar todos los tests (recomendado)
+- `tests/run_tests.sh`: Script bash alternativo
 - `tests/test_runner.py`: Ejecutor interno de tests (usado por los scripts anteriores)
 

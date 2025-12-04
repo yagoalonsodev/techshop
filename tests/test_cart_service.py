@@ -7,9 +7,10 @@ from tests.test_common import *
 def test_cart_add():
     service = CartService('test.db')
     session = MockSession()
-    conn = sqlite3.connect('test.db')
+    conn = sqlite3.connect('test.db', timeout=10.0)
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (1, 'Test', 100.00, 10)")
+    cursor.execute("DELETE FROM Product WHERE id = 1")
+    cursor.execute("INSERT OR REPLACE INTO Product (id, name, price, stock) VALUES (1, 'Test', 100.00, 10)")
     conn.commit()
     conn.close()
     success, _ = service.add_to_cart(1, 3, session)
@@ -23,10 +24,10 @@ def test_cart_add_multiple_calls_respect_limit_and_stock():
     """
     service = CartService('test.db')
     session = MockSession()
-    conn = sqlite3.connect('test.db')
+    conn = sqlite3.connect('test.db', timeout=10.0)
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM Product")
-    cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (90, 'Multi', 10.00, 5)")
+    cursor.execute("DELETE FROM Product WHERE id = 90")
+    cursor.execute("INSERT OR REPLACE INTO Product (id, name, price, stock) VALUES (90, 'Multi', 10.00, 5)")
     conn.commit()
     conn.close()
     success1, _ = service.add_to_cart(90, 2, session)
@@ -46,10 +47,10 @@ def test_cart_add_multiple_calls_respect_limit_and_stock():
 def test_cart_stock():
     service = CartService('test.db')
     session = MockSession()
-    conn = sqlite3.connect('test.db')
+    conn = sqlite3.connect('test.db', timeout=10.0)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
-    cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (2, 'Low', 50.00, 2)")
+    cursor.execute("INSERT OR REPLACE INTO Product (id, name, price, stock) VALUES (2, 'Low', 50.00, 2)")
     conn.commit()
     conn.close()
     success, _ = service.add_to_cart(2, 5, session)
@@ -60,10 +61,10 @@ def test_cart_stock_exact_boundary():
     """Afegir exactament el stock disponible ha de ser possible."""
     service = CartService('test.db')
     session = MockSession()
-    conn = sqlite3.connect('test.db')
+    conn = sqlite3.connect('test.db', timeout=10.0)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
-    cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (21, 'Exact', 50.00, 3)")
+    cursor.execute("INSERT OR REPLACE INTO Product (id, name, price, stock) VALUES (21, 'Exact', 50.00, 3)")
     conn.commit()
     conn.close()
     success, _ = service.add_to_cart(21, 3, session)
@@ -73,10 +74,10 @@ def test_cart_stock_exact_boundary():
 def test_cart_limit():
     service = CartService('test.db')
     session = MockSession()
-    conn = sqlite3.connect('test.db')
+    conn = sqlite3.connect('test.db', timeout=10.0)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
-    cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (3, 'Test', 100.00, 20)")
+    cursor.execute("INSERT OR REPLACE INTO Product (id, name, price, stock) VALUES (3, 'Test', 100.00, 20)")
     conn.commit()
     conn.close()
     service.add_to_cart(3, 3, session)
@@ -88,10 +89,10 @@ def test_cart_limit_exact_boundary():
     """Comprovar que es permet exactament 5 unitats però no més."""
     service = CartService('test.db')
     session = MockSession()
-    conn = sqlite3.connect('test.db')
+    conn = sqlite3.connect('test.db', timeout=10.0)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
-    cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (33, 'Limit', 10.00, 10)")
+    cursor.execute("INSERT OR REPLACE INTO Product (id, name, price, stock) VALUES (33, 'Limit', 10.00, 10)")
     conn.commit()
     conn.close()
     success, _ = service.add_to_cart(33, 5, session)
@@ -103,10 +104,10 @@ def test_cart_limit_exact_boundary():
 def test_cart_negative():
     service = CartService('test.db')
     session = MockSession()
-    conn = sqlite3.connect('test.db')
+    conn = sqlite3.connect('test.db', timeout=10.0)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
-    cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (4, 'Test', 100.00, 10)")
+    cursor.execute("INSERT OR REPLACE INTO Product (id, name, price, stock) VALUES (4, 'Test', 100.00, 10)")
     conn.commit()
     conn.close()
     success, _ = service.add_to_cart(4, -1, session)
@@ -117,10 +118,10 @@ def test_cart_zero_quantity():
     """La quantitat 0 no és vàlida al carretó."""
     service = CartService('test.db')
     session = MockSession()
-    conn = sqlite3.connect('test.db')
+    conn = sqlite3.connect('test.db', timeout=10.0)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
-    cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (50, 'ZeroTest', 10.00, 10)")
+    cursor.execute("INSERT OR REPLACE INTO Product (id, name, price, stock) VALUES (50, 'ZeroTest', 10.00, 10)")
     conn.commit()
     conn.close()
     success, _ = service.add_to_cart(50, 0, session)
@@ -130,10 +131,10 @@ def test_cart_zero_quantity():
 def test_cart_non_int_quantity():
     service = CartService('test.db')
     session = MockSession()
-    conn = sqlite3.connect('test.db')
+    conn = sqlite3.connect('test.db', timeout=10.0)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
-    cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (40, 'Test', 50.00, 5)")
+    cursor.execute("INSERT OR REPLACE INTO Product (id, name, price, stock) VALUES (40, 'Test', 50.00, 5)")
     conn.commit()
     conn.close()
     # Pasar una cadena en lloc d'un enter ha de fallar
@@ -144,10 +145,10 @@ def test_cart_non_int_quantity():
 def test_cart_remove():
     service = CartService('test.db')
     session = MockSession()
-    conn = sqlite3.connect('test.db')
+    conn = sqlite3.connect('test.db', timeout=10.0)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
-    cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (5, 'Test', 100.00, 10)")
+    cursor.execute("INSERT OR REPLACE INTO Product (id, name, price, stock) VALUES (5, 'Test', 100.00, 10)")
     conn.commit()
     conn.close()
     service.add_to_cart(5, 2, session)
@@ -182,10 +183,10 @@ def test_cart_validate_stock_db_error():
 def test_cart_contents():
     service = CartService('test.db')
     session = MockSession()
-    conn = sqlite3.connect('test.db')
+    conn = sqlite3.connect('test.db', timeout=10.0)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
-    cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (6, 'Test', 100.00, 10)")
+    cursor.execute("INSERT OR REPLACE INTO Product (id, name, price, stock) VALUES (6, 'Test', 100.00, 10)")
     conn.commit()
     conn.close()
     service.add_to_cart(6, 2, session)
@@ -196,11 +197,11 @@ def test_cart_contents():
 def test_cart_total():
     service = CartService('test.db')
     session = MockSession()
-    conn = sqlite3.connect('test.db')
+    conn = sqlite3.connect('test.db', timeout=10.0)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
-    cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (7, 'P1', 100.00, 10)")
-    cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (8, 'P2', 200.00, 10)")
+    cursor.execute("INSERT OR REPLACE INTO Product (id, name, price, stock) VALUES (7, 'P1', 100.00, 10)")
+    cursor.execute("INSERT OR REPLACE INTO Product (id, name, price, stock) VALUES (8, 'P2', 200.00, 10)")
     conn.commit()
     conn.close()
     service.add_to_cart(7, 2, session)
@@ -212,10 +213,10 @@ def test_cart_total():
 def test_cart_clear():
     service = CartService('test.db')
     session = MockSession()
-    conn = sqlite3.connect('test.db')
+    conn = sqlite3.connect('test.db', timeout=10.0)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Product")
-    cursor.execute("INSERT INTO Product (id, name, price, stock) VALUES (9, 'Test', 100.00, 10)")
+    cursor.execute("INSERT OR REPLACE INTO Product (id, name, price, stock) VALUES (9, 'Test', 100.00, 10)")
     conn.commit()
     conn.close()
     service.add_to_cart(9, 3, session)
@@ -268,7 +269,7 @@ def test_web_full_checkout_flow_creates_order_and_clears_cart():
     app.config["WTF_CSRF_ENABLED"] = False  # facilitem el test sense CSRF
 
     # Assegurar producte existent a la BD de l'aplicació
-    conn = sqlite3.connect("techshop.db")
+    conn = sqlite3.connect("techshop.db", timeout=10.0)
     cursor = conn.cursor()
     cursor.execute("CREATE TABLE IF NOT EXISTS Product (id INTEGER PRIMARY KEY, name TEXT, price REAL, stock INTEGER)")
     cursor.execute(
@@ -308,7 +309,7 @@ def test_web_full_checkout_flow_creates_order_and_clears_cart():
     )
 
     # Verificar que la comanda s'ha creat
-    conn = sqlite3.connect("techshop.db")
+    conn = sqlite3.connect("techshop.db", timeout=10.0)
     cursor = conn.cursor()
     cursor.execute('SELECT COUNT(*) FROM "Order"')
     after_orders = cursor.fetchone()[0]
@@ -335,7 +336,7 @@ def test_security_cart_manipulation():
     app.config["WTF_CSRF_ENABLED"] = False
     
     # Crear producto
-    conn = sqlite3.connect("techshop.db")
+    conn = sqlite3.connect("techshop.db", timeout=10.0)
     cursor = conn.cursor()
     cursor.execute("CREATE TABLE IF NOT EXISTS Product (id INTEGER PRIMARY KEY, name TEXT, price REAL, stock INTEGER)")
     cursor.execute("INSERT OR REPLACE INTO Product (id, name, price, stock) VALUES (700, 'Test Cart', 10.00, 5)")
@@ -364,7 +365,7 @@ def test_security_concurrent_cart_access():
     app.config["WTF_CSRF_ENABLED"] = False
     
     # Crear producto
-    conn = sqlite3.connect("techshop.db")
+    conn = sqlite3.connect("techshop.db", timeout=10.0)
     cursor = conn.cursor()
     cursor.execute("CREATE TABLE IF NOT EXISTS Product (id INTEGER PRIMARY KEY, name TEXT, price REAL, stock INTEGER)")
     cursor.execute("INSERT OR REPLACE INTO Product (id, name, price, stock) VALUES (900, 'Concurrent Test', 10.00, 100)")
@@ -393,7 +394,7 @@ def test_company_cannot_add_to_cart():
     app.config["WTF_CSRF_ENABLED"] = False
     
     # Crear empresa
-    conn = sqlite3.connect("techshop.db")
+    conn = sqlite3.connect("techshop.db", timeout=10.0)
     cursor = conn.cursor()
     password_hash = generate_password_hash("Test123")
     cursor.execute(

@@ -10,27 +10,27 @@
     <header>
         <div class="site-header">
             <h1 class="site-title">
-                <a href="{{ url_for('show_products') }}" aria-label="Anar a la pàgina de productes">TechShop</a>
+                <a href="{{ url_for('main.show_products') }}" aria-label="Anar a la pàgina de productes">TechShop</a>
             </h1>
             <nav>
-                <a href="{{ url_for('show_products') }}">{{ _('products') }}</a>
+                <a href="{{ url_for('main.show_products') }}">{{ _('products') }}</a>
                 {% if current_user %}
-                    <a href="{{ url_for('profile') }}" class="user-info">{{ _('hello') }}, {{ current_user.username }}</a>
+                    <a href="{{ url_for('profile.profile') }}" class="user-info">{{ _('hello') }}, {{ current_user.username }}</a>
                     {% if current_user.is_admin() %}
-                        <a href="{{ url_for('admin_dashboard') }}" class="btn-admin">{{ _('admin') }}</a>
+                        <a href="{{ url_for('admin.admin_dashboard') }}" class="btn-admin">{{ _('admin') }}</a>
                     {% endif %}
                     {% if current_user.account_type == 'company' %}
-                        <a href="{{ url_for('company_products') }}" class="btn-company">{{ _('my_products') }}</a>
+                        <a href="{{ url_for('company.company_products') }}" class="btn-company">{{ _('my_products') }}</a>
                     {% endif %}
-                    <a href="{{ url_for('logout') }}" class="logout-link" aria-label="{{ _('logout') }}">
+                    <a href="{{ url_for('auth.logout') }}" class="logout-link" aria-label="{{ _('logout') }}">
                         <span class="sr-only">{{ _('logout') }}</span>
                         <img src="{{ url_for('static', filename='img/logout/1.png') }}" alt="" id="logout-icon">
                     </a>
                 {% else %}
-                    <a href="{{ url_for('login') }}" class="btn-login">{{ _('login') }}</a>
+                    <a href="{{ url_for('auth.login') }}" class="btn-login">{{ _('login') }}</a>
                 {% endif %}
                 {% if not current_user or current_user.account_type != 'company' %}
-                <a href="{{ url_for('checkout') }}" class="cart-link" aria-label="{{ _('cart') }}">
+                <a href="{{ url_for('main.checkout') }}" class="cart-link" aria-label="{{ _('cart') }}">
                     <span class="sr-only">{{ _('cart') }}</span>
                     <img src="{{ url_for('static', filename='img/carrito/1.png') }}" alt="" id="cart-icon">
                 </a>
@@ -38,7 +38,7 @@
                 <!-- Selector de idioma -->
                 <div class="language-selector">
                     {% for lang in available_languages %}
-                        <a href="{{ url_for('set_language', lang=lang) }}" 
+                        <a href="{{ url_for('utils.set_language', lang=lang) }}" 
                            class="language-flag {% if lang == current_language %}active{% endif %}"
                            aria-label="{{ get_language_name(lang) }}">
                             {% if lang == 'cat' %}

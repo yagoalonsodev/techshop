@@ -7,7 +7,7 @@
     <h2>{% if product %}Editar {{ _('product_col') }}{% else %}Crear Nou {{ _('product_col') }}{% endif %}</h2>
     
     <form method="POST" 
-          action="{% if product %}{{ url_for('company_edit_product', product_id=product.id) }}{% else %}{{ url_for('company_create_product') }}{% endif %}" 
+          action="{% if product %}{{ url_for('company.edit_product', product_id=product.id) }}{% else %}{{ url_for('company.company_create_product') }}{% endif %}" 
           class="admin-form"
           enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -66,7 +66,7 @@
                 <label>{{ _('image_not_available')|replace('no disponible', 'Actuals') }}:</label>
                 <div class="current-images">
                     <p class="info-text">{{ _('info') }}: {{ _('current_images_info') }}</p>
-                    <p class="info-text">{{ _('view_current_images') }} <a href="{{ url_for('show_products') }}">{{ _('page_products') }}</a>.</p>
+                    <p class="info-text">{{ _('view_current_images') }} <a href="{{ url_for('main.show_products') }}">{{ _('page_products') }}</a>.</p>
                 </div>
             </div>
         {% endif %}
@@ -75,7 +75,7 @@
             <button type="submit" class="btn btn-success btn-large">
                 {% if product %}{{ _('btn_update') }}{% else %}{{ _('create_product') }}{% endif %}
             </button>
-            <a href="{{ url_for('company_products') }}" class="btn btn-secondary">
+            <a href="{{ url_for('company.company_products') }}" class="btn btn-secondary">
                 {{ _('btn_cancel') }}
             </a>
         </div>

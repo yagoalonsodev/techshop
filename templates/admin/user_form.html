@@ -6,7 +6,7 @@
 <div class="admin-container">
     <h2>{{ _('btn_edit') }} {{ _('table_username') }}</h2>
     
-    <form method="POST" action="{{ url_for('admin_edit_user', user_id=user.id) }}" class="admin-form">
+    <form method="POST" action="{{ url_for('admin.edit_user', user_id=user.id) }}" class="admin-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         
         <div class="form-group">
@@ -67,7 +67,7 @@
             <button type="submit" class="btn btn-success btn-large">
                 {{ _('btn_update') }} {{ _('table_username') }}
             </button>
-            <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">
+            <a href="{{ url_for('admin.admin_users') }}" class="btn btn-secondary">
                 {{ _('btn_cancel') }}
             </a>
         </div>

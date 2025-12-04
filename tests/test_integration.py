@@ -5,6 +5,7 @@ Tests para Integration
 from tests.test_common import *
 
 def test_inventory_update():
+    init_test_db()  # Asegurar que la BD está inicializada
     order_service = OrderService('test.db')
     conn = sqlite3.connect('test.db')
     cursor = conn.cursor()
@@ -218,6 +219,8 @@ def test_profile_edit_updates_data():
     conn = sqlite3.connect("techshop.db")
     cursor = conn.cursor()
     cursor.execute("DELETE FROM User WHERE username = 'test_edit' OR email IN ('test_edit_email@test.com', 'newemail_edit@test.com')")
+    # Limpiar también cualquier usuario con el DNI que vamos a usar
+    cursor.execute("DELETE FROM User WHERE dni = '12345678Z'")
     conn.commit()
     
     # Crear usuario
@@ -244,9 +247,13 @@ def test_profile_edit_updates_data():
         "nif": ""
     }, follow_redirects=True)
     
+    # Verificar que la respuesta fue exitosa
+    if resp.status_code != 200:
+        return assert_false(True, f"La respuesta debería ser 200, pero fue {resp.status_code}")
+    
     # Verificar que se actualizó en la base de datos (esperar un poco para que se complete la transacción)
     import time
-    time.sleep(0.1)
+    time.sleep(0.2)
     
     conn = sqlite3.connect("techshop.db")
     cursor = conn.cursor()
@@ -254,10 +261,10 @@ def test_profile_edit_updates_data():
         cursor.execute("SELECT email, address, dni FROM User WHERE id = ?", (user_id,))
         result = cursor.fetchone()
         if result:
-            email, address = result
+            # Corregir unpacking: la query devuelve 3 valores (email, address, dni)
+            email, address, dni = result
             ok_email = assert_equals(email, "newemail_edit@test.com", f"Email debería actualizarse. Actual: {email}")
             ok_address = assert_equals(address, "New Address", f"Address debería actualizarse. Actual: {address}")
-            # dni puede no estar en la BD si la columna no existe
             return ok_email and ok_address
         return False
     except sqlite3.OperationalError:

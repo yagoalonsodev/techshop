@@ -15,7 +15,7 @@
         <p>{{ _('complete_profile_info') }}</p>
     </div>
     
-    <form method="POST" action="{{ url_for('complete_google_profile') }}" id="complete-profile-form" class="auth-form">
+    <form method="POST" action="{{ url_for('auth.complete_google_profile') }}" id="complete-profile-form" class="auth-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         
         <div class="form-group">
@@ -74,7 +74,7 @@
             <button type="submit" class="btn btn-primary btn-large">
                 {{ _('complete_registration') }}
             </button>
-            <a href="{{ url_for('logout') }}" class="btn btn-secondary">
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary">
                 {{ _('btn_cancel') }}
             </a>
         </div>

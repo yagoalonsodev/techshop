@@ -9,15 +9,15 @@
     </div>
     
     <div class="profile-tabs">
-        <a href="{{ url_for('profile', section='view') }}" 
+        <a href="{{ url_for('profile.profile', section='view') }}" 
            class="tab {% if section == 'view' %}active{% endif %}">
             {{ _('view_data') }}
         </a>
-        <a href="{{ url_for('profile', section='edit') }}" 
+        <a href="{{ url_for('profile.profile', section='edit') }}" 
            class="tab {% if section == 'edit' %}active{% endif %}">
             {{ _('edit_data') }}
         </a>
-        <a href="{{ url_for('profile', section='history') }}" 
+        <a href="{{ url_for('profile.profile', section='history') }}" 
            class="tab {% if section == 'history' %}active{% endif %}">
             {{ _('purchase_history') }}
         </a>
@@ -62,7 +62,7 @@
                     </div>
                 </div>
                 <div class="profile-actions" style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--color-border);">
-                    <form method="POST" action="{{ url_for('delete_account') }}" onsubmit="return confirm('Estàs segur que vols eliminar el teu compte? Aquesta acció no es pot desfer i s\'eliminaran totes les teves dades i comandes.');">
+                    <form method="POST" action="{{ url_for('profile.delete_account') }}" onsubmit="return confirm('Estàs segur que vols eliminar el teu compte? Aquesta acció no es pot desfer i s\'eliminaran totes les teves dades i comandes.');">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-danger">
                             Eliminar Compte
@@ -75,7 +75,7 @@
             <!-- Secció: Editar Dades -->
             <div class="profile-section">
                 <h3>{{ _('edit_data') }}</h3>
-                <form method="POST" action="{{ url_for('profile_edit') }}" class="profile-form">
+                <form method="POST" action="{{ url_for('profile.profile_edit') }}" class="profile-form">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     
                     <div class="form-group">
@@ -129,7 +129,7 @@
                     
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">{{ _('save_changes') }}</button>
-                        <a href="{{ url_for('profile', section='view') }}" class="btn btn-secondary">{{ _('btn_cancel') }}</a>
+                        <a href="{{ url_for('profile.profile', section='view') }}" class="btn btn-secondary">{{ _('btn_cancel') }}</a>
                     </div>
                 </form>
             </div>
@@ -149,7 +149,7 @@
                                         <p class="order-date">{{ order.created_at.strftime('%d/%m/%Y %H:%M') if order.created_at else 'N/A' }}</p>
                                     </div>
                                     <div class="order-actions">
-                                        <a href="{{ url_for('download_invoice', order_id=order.id) }}" 
+                                        <a href="{{ url_for('profile.download_invoice', order_id=order.id) }}" 
                                            class="btn btn-primary btn-small">
                                             📄 {{ _('btn_download_invoice') }}
                                         </a>
@@ -191,7 +191,7 @@
                 {% else %}
                     <div class="no-orders">
                         <p>{{ _('no_purchases_yet') }}</p>
-                        <a href="{{ url_for('show_products') }}" class="btn btn-primary">{{ _('view_products') }}</a>
+                        <a href="{{ url_for('main.show_products') }}" class="btn btn-primary">{{ _('view_products') }}</a>
                     </div>
                 {% endif %}
             </div>

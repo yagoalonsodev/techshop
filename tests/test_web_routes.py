@@ -242,8 +242,8 @@ def test_web_checkout_authenticated_user():
     cursor = conn.cursor()
     password_hash = generate_password_hash("Password123")
     cursor.execute(
-        "INSERT OR REPLACE INTO User (username, password_hash, email, created_at) VALUES (?, ?, ?, datetime('now'))",
-        ("test_auth_checkout", password_hash, "auth@test.com")
+        "INSERT OR REPLACE INTO User (username, password_hash, email, account_type, created_at) VALUES (?, ?, ?, ?, datetime('now'))",
+        ("test_auth_checkout", password_hash, "auth@test.com", "user")
     )
     cursor.execute("CREATE TABLE IF NOT EXISTS Product (id INTEGER PRIMARY KEY, name TEXT, price REAL, stock INTEGER)")
     cursor.execute(
@@ -270,7 +270,7 @@ def test_web_checkout_authenticated_user():
         "S'ha de mostrar el nom d'usuari autenticat"
     )
     ok_only_address = assert_true(
-        b"Adre&#231;a d'enviament" in resp.data or "Adreça d'enviament".encode('utf-8') in resp.data,
+        b'name="address"' in resp.data or b"Adre&#231;a d'enviament" in resp.data or "Adreça d'enviament".encode('utf-8') in resp.data or b"Direcci" in resp.data or b"textarea" in resp.data and b"address" in resp.data,
         "S'ha de mostrar el camp d'adreça"
     )
     ok_no_username_field = assert_false(

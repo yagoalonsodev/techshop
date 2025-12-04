@@ -212,16 +212,47 @@ def _reset_sales_data(conn):
 def _insert_sale(conn, order_id, user_id, product_id, quantity, price, stock=100):
     """Inserta una venta para tests de recomendaciones"""
     cursor = conn.cursor()
+    # Crear producto si no existe (usando INSERT OR IGNORE para evitar errores si ya existe)
     cursor.execute('''
-        INSERT INTO "Order" (id, total, created_at, user_id)
-        VALUES (?, ?, datetime('now'), ?)
-    ''', (order_id, price * quantity, user_id))
-    cursor.execute('''
-        INSERT INTO OrderItem (order_id, product_id, quantity)
-        VALUES (?, ?, ?)
-    ''', (order_id, product_id, quantity))
+        INSERT OR IGNORE INTO Product (id, name, price, stock)
+        VALUES (?, ?, ?, ?)
+    ''', (product_id, f'Product {product_id}', price, stock))
+    # Actualizar stock si el producto ya existe
     cursor.execute('''
         UPDATE Product SET stock = ? WHERE id = ?
     ''', (stock, product_id))
+    # Crear usuario si no existe (usando INSERT OR IGNORE)
+    cursor.execute('''
+        INSERT OR IGNORE INTO User (id, username, password_hash, email, account_type, created_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'))
+    ''', (user_id, f'user{user_id}', 'hash', f'user{user_id}@test.com', 'user'))
+    # Insertar orden (usando INSERT OR REPLACE para evitar errores de clave duplicada)
+    cursor.execute('''
+        INSERT OR REPLACE INTO "Order" (id, total, created_at, user_id)
+        VALUES (?, ?, datetime('now'), ?)
+    ''', (order_id, price * quantity, user_id))
+    # Insertar OrderItem (usando INSERT OR REPLACE)
+    cursor.execute('''
+        INSERT OR REPLACE INTO OrderItem (order_id, product_id, quantity)
+        VALUES (?, ?, ?)
+    ''', (order_id, product_id, quantity))
     conn.commit()
 
+
+# Exportar todo para que esté disponible con import *
+# Esto incluye todas las clases, funciones y módulos importados
+__all__ = [
+    # Clases
+    'MockSession', 'Colors',
+    # Funciones de test
+    'run_test', 'assert_true', 'assert_false', 'assert_equals',
+    'reset_test_counters', 'get_test_stats',
+    # Base de datos
+    'init_test_db', 'cleanup_test_db', '_reset_sales_data', '_insert_sale',
+    # Módulos y funciones importadas
+    'sqlite3', 'os', 'Decimal', 'generate_password_hash', 'check_password_hash',
+    'app', 'Product', 'User', 'Order', 'OrderItem',
+    'CartService', 'OrderService', 'RecommendationService',
+    'validar_dni', 'validar_nie', 'validar_cif', 'validar_dni_nie', 'validar_cif_nif',
+    'UserService', 'AdminService', 'ProductService', 'CompanyService'
+]

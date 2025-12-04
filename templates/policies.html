@@ -98,7 +98,7 @@
                 <button type="button" class="btn btn-primary btn-large" id="accept-policies-btn" onclick="acceptPolicies()">
                     Accepto les Polítiques
                 </button>
-                <a href="{{ url_for('register') }}" class="btn btn-secondary">
+                <a href="{{ url_for('auth.register') }}" class="btn btn-secondary">
                     Tornar al Registre
                 </a>
             </div>
@@ -161,9 +161,9 @@ function acceptPolicies() {
         // Si está en la misma ventana, redirigir según el return_to
         var returnTo = "{{ return_to|default('register') }}";
         if (returnTo === 'complete_google_profile') {
-            window.location.href = "{{ url_for('complete_google_profile') }}";
+            window.location.href = "{{ url_for('auth.complete_google_profile') }}";
         } else {
-            window.location.href = "{{ url_for('register') }}";
+            window.location.href = "{{ url_for('auth.register') }}";
         }
     }
 }

@@ -6,8 +6,9 @@ Ejecuta: python run_tests.py
 import sys
 import os
 
-# Asegurar que el directorio actual está en el path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Asegurar que el directorio raíz del proyecto está en el path
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
 
 # Ejecutar el test runner
 if __name__ == '__main__':

@@ -313,6 +313,7 @@ def test_username_edge_cases():
 
 def test_recommendations_limit_greater_than_products():
     """Si el límit és més gran que el nombre de productes venuts, només s'han de retornar els existents."""
+    init_test_db()  # Asegurar que la BD está inicializada
     service = RecommendationService('test.db')
     conn = sqlite3.connect('test.db')
     _reset_sales_data(conn)
@@ -325,6 +326,7 @@ def test_recommendations_limit_greater_than_products():
 
 
 def test_recommendations_for_user():
+    init_test_db()  # Asegurar que la BD está inicializada
     service = RecommendationService('test.db')
     conn = sqlite3.connect('test.db')
     _reset_sales_data(conn)

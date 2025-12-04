@@ -5,6 +5,7 @@ Tests para Recommendation Service
 from tests.test_common import *
 
 def test_recommendations_by_sales():
+    init_test_db()  # Asegurar que la BD está inicializada
     service = RecommendationService('test.db')
     conn = sqlite3.connect('test.db')
     _reset_sales_data(conn)
@@ -32,6 +33,7 @@ def test_recommendations_tiebreaker_by_name():
     Quan dos productes tenen les mateixes unitats venudes,
     l'ordre s'ha de decidir pel nom (ORDER BY total_sold DESC, p.name ASC).
     """
+    init_test_db()  # Asegurar que la BD está inicializada
     service = RecommendationService('test.db')
     conn = sqlite3.connect('test.db')
     _reset_sales_data(conn)
@@ -51,6 +53,7 @@ def test_recommendations_tiebreaker_by_name():
 
 
 def test_recommendations_limit_zero():
+    init_test_db()  # Asegurar que la BD está inicializada
     service = RecommendationService('test.db')
     conn = sqlite3.connect('test.db')
     _reset_sales_data(conn)
@@ -62,6 +65,7 @@ def test_recommendations_limit_zero():
 
 def test_recommendations_negative_limit():
     """Un límit negatiu s'ha de tractar igual que 0: sense recomanacions."""
+    init_test_db()  # Asegurar que la BD está inicializada
     service = RecommendationService('test.db')
     conn = sqlite3.connect('test.db')
     _reset_sales_data(conn)
@@ -73,6 +77,7 @@ def test_recommendations_negative_limit():
 
 
 def test_recommendations_no_sales():
+    init_test_db()  # Asegurar que la BD está inicializada
     service = RecommendationService('test.db')
     conn = sqlite3.connect('test.db')
     _reset_sales_data(conn)

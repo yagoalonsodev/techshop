@@ -26,96 +26,49 @@ from tests import test_integration
 
 
 def collect_all_tests():
-    """Recopila todos los tests de todos los módulos"""
+    """Recopila todos los tests de todos los módulos de forma dinámica"""
     all_tests = []
     
-    # Tests de modelos
-    all_tests.extend([
-        ("BD - Inicialización", test_models.test_db_init),
-        ("Modelo - Product", test_models.test_product),
-        ("Modelo - User", test_models.test_user),
-        ("Modelo - User (created_at por defecto)", test_models.test_user_created_at_default),
-        ("Modelo - Order", test_models.test_order),
-        ("Modelo - Order (created_at por defecto)", test_models.test_order_created_at_default),
-        ("Modelo - OrderItem", test_models.test_orderitem),
-    ])
+    # Mapeo de módulos a prefijos de categoría
+    test_modules = [
+        (test_models, "Models"),
+        (test_cart_service, "Cart"),
+        (test_order_service, "Order"),
+        (test_user_service, "UserService"),
+        (test_product_service, "ProductService"),
+        (test_admin_service, "AdminService"),
+        (test_company_service, "CompanyService"),
+        (test_recommendation_service, "Recommendation"),
+        (test_validators, "Validator"),
+        (test_web_routes, "Web"),
+        (test_security, "Security"),
+        (test_integration, "Integration"),
+    ]
     
-    # Tests de CartService
-    cart_tests = [attr for attr in dir(test_cart_service) if attr.startswith('test_')]
-    for test_name in cart_tests:
-        test_func = getattr(test_cart_service, test_name)
-        display_name = test_name.replace('test_', '').replace('_', ' ').title()
-        all_tests.append((f"Cart - {display_name}", test_func))
-    
-    # Tests de OrderService
-    order_tests = [attr for attr in dir(test_order_service) if attr.startswith('test_')]
-    for test_name in order_tests:
-        test_func = getattr(test_order_service, test_name)
-        display_name = test_name.replace('test_', '').replace('_', ' ').title()
-        all_tests.append((f"Order - {display_name}", test_func))
-    
-    # Tests de UserService
-    user_tests = [attr for attr in dir(test_user_service) if attr.startswith('test_')]
-    for test_name in user_tests:
-        test_func = getattr(test_user_service, test_name)
-        display_name = test_name.replace('test_user_service_', '').replace('_', ' ').title()
-        all_tests.append((f"UserService - {display_name}", test_func))
-    
-    # Tests de ProductService
-    product_tests = [attr for attr in dir(test_product_service) if attr.startswith('test_')]
-    for test_name in product_tests:
-        test_func = getattr(test_product_service, test_name)
-        display_name = test_name.replace('test_product_service_', '').replace('_', ' ').title()
-        all_tests.append((f"ProductService - {display_name}", test_func))
-    
-    # Tests de AdminService
-    admin_tests = [attr for attr in dir(test_admin_service) if attr.startswith('test_')]
-    for test_name in admin_tests:
-        test_func = getattr(test_admin_service, test_name)
-        display_name = test_name.replace('test_admin_service_', '').replace('_', ' ').title()
-        all_tests.append((f"AdminService - {display_name}", test_func))
-    
-    # Tests de CompanyService
-    company_tests = [attr for attr in dir(test_company_service) if attr.startswith('test_')]
-    for test_name in company_tests:
-        test_func = getattr(test_company_service, test_name)
-        display_name = test_name.replace('test_company_', '').replace('test_company_service_', '').replace('_', ' ').title()
-        all_tests.append((f"CompanyService - {display_name}", test_func))
-    
-    # Tests de RecommendationService
-    rec_tests = [attr for attr in dir(test_recommendation_service) if attr.startswith('test_')]
-    for test_name in rec_tests:
-        test_func = getattr(test_recommendation_service, test_name)
-        display_name = test_name.replace('test_recommendations_', '').replace('_', ' ').title()
-        all_tests.append((f"Recommendation - {display_name}", test_func))
-    
-    # Tests de Validators
-    validator_tests = [attr for attr in dir(test_validators) if attr.startswith('test_')]
-    for test_name in validator_tests:
-        test_func = getattr(test_validators, test_name)
-        display_name = test_name.replace('test_validator_', '').replace('test_', '').replace('_', ' ').title()
-        all_tests.append((f"Validator - {display_name}", test_func))
-    
-    # Tests de Web Routes
-    web_tests = [attr for attr in dir(test_web_routes) if attr.startswith('test_')]
-    for test_name in web_tests:
-        test_func = getattr(test_web_routes, test_name)
-        display_name = test_name.replace('test_web_', '').replace('_', ' ').title()
-        all_tests.append((f"Web - {display_name}", test_func))
-    
-    # Tests de Security
-    security_tests = [attr for attr in dir(test_security) if attr.startswith('test_')]
-    for test_name in security_tests:
-        test_func = getattr(test_security, test_name)
-        display_name = test_name.replace('test_security_', '').replace('_', ' ').title()
-        all_tests.append((f"Security - {display_name}", test_func))
-    
-    # Tests de Integration
-    integration_tests = [attr for attr in dir(test_integration) if attr.startswith('test_')]
-    for test_name in integration_tests:
-        test_func = getattr(test_integration, test_name)
-        display_name = test_name.replace('test_', '').replace('_', ' ').title()
-        all_tests.append((f"Integration - {display_name}", test_func))
+    for test_module, category_prefix in test_modules:
+        # Encontrar todas las funciones que empiezan con 'test_'
+        test_functions = [
+            attr for attr in dir(test_module) 
+            if attr.startswith('test_') and callable(getattr(test_module, attr))
+        ]
+        
+        for test_name in test_functions:
+            try:
+                test_func = getattr(test_module, test_name)
+                # Crear nombre legible para el display
+                display_name = test_name.replace('test_', '')
+                # Remover prefijos comunes
+                for prefix in ['user_service_', 'product_service_', 'admin_service_', 
+                              'company_service_', 'company_', 'recommendations_', 
+                              'validator_', 'web_', 'security_']:
+                    if display_name.startswith(prefix):
+                        display_name = display_name[len(prefix):]
+                        break
+                display_name = display_name.replace('_', ' ').title()
+                all_tests.append((f"{category_prefix} - {display_name}", test_func))
+            except AttributeError:
+                # Si no se puede obtener la función, saltarla
+                continue
     
     return all_tests
 

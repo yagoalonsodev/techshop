@@ -51,10 +51,10 @@ class UserService:
                 account_type = result[0] if result and result[0] else 'user'
                 
                 if account_type == 'company':
-                    if not nif or not validar_cif_nif(nif):
+                    if nif and not validar_cif_nif(nif):
                         return False, "NIF no vàlid. Format esperat: lletra + 7 números + caràcter de control"
                 else:
-                    if not dni or not validar_dni_nie(dni):
+                    if dni and not validar_dni_nie(dni):
                         return False, "DNI/NIE no vàlid. Format esperat: 8 números + lletra (DNI) o X/Y/Z + 7 números + lletra (NIE)"
         except sqlite3.Error:
             pass  # Continuar amb la validació normal

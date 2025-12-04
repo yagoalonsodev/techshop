@@ -94,15 +94,15 @@
                             </div>
                         {% endif %}
                     </div>
-                    <h3><a href="{{ url_for('product_detail', product_id=product.id) }}">{{ product.name }}</a></h3>
+                    <h3><a href="{{ url_for('main.product_detail', product_id=product.id) }}">{{ product.name }}</a></h3>
                     <p class="price">{{ "%.2f"|format(product.price) }}€</p>
                     <p class="stock">{{ _('stock_available') }} {{ product.stock }} {{ _('units') }}</p>
                     
                     {% if product.stock > 0 %}
                         {% if current_user and current_user.account_type == 'company' %}
-                            <p class="company-info">{{ _('company_cannot_buy_message') }} <a href="{{ url_for('company_products') }}">{{ _('my_products') }}</a>.</p>
+                            <p class="company-info">{{ _('company_cannot_buy_message') }} <a href="{{ url_for('company.company_products') }}">{{ _('my_products') }}</a>.</p>
                         {% else %}
-                            <form method="POST" action="{{ url_for('add_to_cart') }}" class="add-to-cart-form">
+                            <form method="POST" action="{{ url_for('main.add_to_cart') }}" class="add-to-cart-form">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="product_id" value="{{ product.id }}">
                                 

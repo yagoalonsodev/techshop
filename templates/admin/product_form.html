@@ -6,7 +6,7 @@
 <div class="admin-container">
     <h2>{% if product %}{{ _('btn_edit') }} {{ _('product_col') }}{% else %}{{ _('btn_create') }} {{ _('product_col') }}{% endif %}</h2>
     
-    <form method="POST" action="{% if product %}{{ url_for('admin_edit_product', product_id=product.id) }}{% else %}{{ url_for('admin_create_product') }}{% endif %}" class="admin-form">
+    <form method="POST" action="{% if product %}{{ url_for('admin.edit_product', product_id=product.id) }}{% else %}{{ url_for('admin.admin_create_product') }}{% endif %}" class="admin-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         
         <div class="form-group">
@@ -50,7 +50,7 @@
             <button type="submit" class="btn btn-success btn-large">
                 {% if product %}{{ _('btn_update') }}{% else %}{{ _('create_product') }}{% endif %}
             </button>
-            <a href="{{ url_for('admin_products') }}" class="btn btn-secondary">
+            <a href="{{ url_for('admin.admin_products') }}" class="btn btn-secondary">
                 {{ _('btn_cancel') }}
             </a>
         </div>

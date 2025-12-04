@@ -7,8 +7,8 @@
     <div class="admin-header">
         <h2>{{ _('manage_users') }}</h2>
         <div>
-            <a href="{{ url_for('admin_create_user') }}" class="btn btn-primary">{{ _('create_user') }}</a>
-            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">{{ _('back_to_dashboard') }}</a>
+            <a href="{{ url_for('admin.admin_create_user') }}" class="btn btn-primary">{{ _('create_user') }}</a>
+            <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-secondary">{{ _('back_to_dashboard') }}</a>
         </div>
     </div>
     
@@ -43,13 +43,13 @@
                         </td>
                         <td>{{ user.created_at.strftime('%d/%m/%Y') if user.created_at else 'N/A' }}</td>
                         <td class="actions">
-                            <a href="{{ url_for('admin_edit_user', user_id=user.id) }}" class="btn btn-small btn-primary">{{ _('btn_edit') }}</a>
-                            <form method="POST" action="{{ url_for('admin_reset_user_password', user_id=user.id) }}" style="display: inline;">
+                            <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="btn btn-small btn-primary">{{ _('btn_edit') }}</a>
+                            <form method="POST" action="{{ url_for('admin.reset_user_password', user_id=user.id) }}" style="display: inline;">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-small btn-warning" onclick="return confirm('{{ _('confirm_reset_password') }}');">{{ _('reset_password') }}</button>
                             </form>
                             {% if current_user and user.id != current_user.id %}
-                                <form method="POST" action="{{ url_for('admin_delete_user', user_id=user.id) }}" style="display: inline;">
+                                <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}" style="display: inline;">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('{{ _('confirm_delete_user') }}');">{{ _('btn_delete') }}</button>
                                 </form>

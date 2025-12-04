@@ -100,7 +100,7 @@ class CartService:
             Tuple[bool, str]: (disponible, missatge)
         """
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with sqlite3.connect(self.db_path, timeout=10.0) as conn:
                 cursor = conn.cursor()
                 cursor.execute("SELECT stock FROM Product WHERE id = ?", (product_id,))
                 result = cursor.fetchone()
@@ -154,7 +154,7 @@ class CartService:
         cart = self._get_cart(session)
         
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with sqlite3.connect(self.db_path, timeout=10.0) as conn:
                 cursor = conn.cursor()
                 for product_id, quantity in cart.items():
                     cursor.execute("SELECT price FROM Product WHERE id = ?", (product_id,))
