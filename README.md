@@ -27,19 +27,19 @@ TechShop/
 ├── app.py                    # Aplicació principal Flask (configuració i blueprints)
 ├── models.py                 # Compatibilitat (importa des de models/)
 │
-├── models/                   # Modelos de datos (capa de datos)
-│   ├── product.py           # Modelo Product
-│   ├── user.py              # Modelo User
-│   ├── order.py             # Modelo Order
-│   └── order_item.py        # Modelo OrderItem
+├── models/                   # Models de dades (capa de dades)
+│   ├── product.py           # Model Product
+│   ├── user.py              # Model User
+│   ├── order.py             # Model Order
+│   └── order_item.py        # Model OrderItem
 │
-├── routes/                   # Rutas HTTP (capa de control - Flask Blueprints)
-│   ├── main.py              # Rutas principales (productos, carrito, checkout)
-│   ├── auth.py              # Autenticación (login, register, OAuth)
-│   ├── profile.py           # Perfil de usuario
-│   ├── admin.py             # Panel de administración
-│   ├── company.py           # Gestión de productos para empresas
-│   └── utils.py             # Utilidades (idioma, políticas)
+├── routes/                   # Rutes HTTP (capa de control - Flask Blueprints)
+│   ├── main.py              # Rutes principals (productes, carretó, checkout)
+│   ├── auth.py              # Autenticació (login, register, OAuth)
+│   ├── profile.py           # Perfil d'usuari
+│   ├── admin.py             # Panell d'administració
+│   ├── company.py           # Gestió de productes per empreses
+│   └── utils.py             # Utilitats (idioma, polítiques)
 │
 ├── services/                 # Lògica de negoci (capa de negocio)
 │   ├── cart_service.py      # Gestió del carretó
@@ -78,7 +78,7 @@ TechShop/
 │   ├── test_common.py       # Utilitats compartides per tests
 │   ├── test_models.py       # Tests de models
 │   ├── test_*_service.py    # Tests de serveis
-│   └── test_web_routes.py   # Tests de rutas web
+│   └── test_web_routes.py   # Tests de rutes web
 │
 ├── scripts/                  # Scripts d'utilitat
 │   ├── init_database.py     # Inicialitzar base de dades
@@ -283,14 +283,14 @@ El projecte inclou una suite completa de tests organitzats modularment que valid
 Per executar tots els test cases:
 
 ```bash
-# Desde la raíz del proyecto:
+# Des de l'arrel del projecte:
 python3 tests/run_tests.py
 
-# O usando el script bash:
+# O usant el script bash:
 bash tests/run_tests.sh
 ```
 
-**Resultado:** Todos los 180 tests pasando (100% de éxito)
+**Resultat:** Tots els 180 tests passant (100% d'èxit)
 
 El script mostrarà un resum amb el nombre total de proves, les que han passat i les que han fallat, juntament amb un percentatge d'èxit.
 
@@ -299,12 +299,12 @@ El script mostrarà un resum amb el nombre total de proves, les que han passat i
 #### 1. Base de Dades i Models (7 tests)
 
 - **BD - Inicialització**: Verifica la creació correcta de les taules de la base de dades
-- **Modelo - Product**: Valida la creació i propietats del model Product
-- **Modelo - User**: Valida la creació i propietats del model User
-- **Modelo - User (created_at per defecte)**: Verifica que `created_at` s'assigna automàticament
-- **Modelo - Order**: Valida la creació i propietats del model Order
-- **Modelo - Order (created_at per defecte)**: Verifica que `created_at` s'assigna automàticament
-- **Modelo - OrderItem**: Valida la creació i propietats del model OrderItem
+- **Model - Product**: Valida la creació i propietats del model Product
+- **Model - User**: Valida la creació i propietats del model User
+- **Model - User (created_at per defecte)**: Verifica que `created_at` s'assigna automàticament
+- **Model - Order**: Valida la creació i propietats del model Order
+- **Model - Order (created_at per defecte)**: Verifica que `created_at` s'assigna automàticament
+- **Model - OrderItem**: Valida la creació i propietats del model OrderItem
 
 #### 2. Gestió del Carretó (Cart Service) (17 tests)
 
@@ -401,7 +401,7 @@ El script mostrarà un resum amb el nombre total de proves, les que han passat i
 
 Tots els tests utilitzen una base de dades de prova (`test.db`) que es crea i s'elimina automàticament durant l'execució, assegurant que no s'afecti la base de dades principal de l'aplicació.
 
-**Ver `tests/README.md` para más detalles sobre la estructura de tests.**
+**Veure `tests/README.md` per a més detalls sobre l'estructura de tests.**
 
 ## 🛠️ Desenvolupament
 
@@ -423,21 +423,21 @@ Tots els tests utilitzen una base de dades de prova (`test.db`) que es crea i s'
 
 ## 📝 Documentació Addicional
 
-### Documentación Principal:
+### Documentació Principal:
 - `docs/reglas_techshop.md`: Regles i requisits de la pràctica
 - `docs/memoria.md`: Memòria del projecte
 - `STRUCTURE.md`: Detalls de l'estructura del projecte
 
-### Documentación por Carpeta:
-- `models/README.md`: Documentación de modelos de datos
-- `routes/README.md`: Documentación de rutas y blueprints
-- `services/README.md`: Documentación de servicios y lógica de negocio
-- `templates/README.md`: Documentación de plantillas HTML
-- `static/README.md`: Documentación de recursos estáticos
-- `utils/README.md`: Documentación de utilidades
-- `tests/README.md`: Documentación de tests
-- `scripts/README.md`: Documentación de scripts de utilidad
-- `migrations/README.md`: Documentación de migraciones de BD
+### Documentació per Carpeta:
+- `models/README.md`: Documentació de models de dades
+- `routes/README.md`: Documentació de rutes i blueprints
+- `services/README.md`: Documentació de serveis i lògica de negoci
+- `templates/README.md`: Documentació de plantilles HTML
+- `static/README.md`: Documentació de recursos estàtics
+- `utils/README.md`: Documentació d'utilitats
+- `tests/README.md`: Documentació de tests
+- `scripts/README.md`: Documentació de scripts d'utilitat
+- `migrations/README.md`: Documentació de migracions de BD
 
 ## 👤 Autor
 

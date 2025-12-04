@@ -1,14 +1,14 @@
 # Tests de TechShop
 
-## 📁 Estructura Organizada
+## 📁 Estructura Organitzada
 
-Los tests han sido organizados siguiendo las **buenas prácticas de Python** y la estructura del proyecto:
+Els tests han estat organitzats seguint les **bones pràctiques de Python** i l'estructura del projecte:
 
 ```
 tests/
-├── __init__.py                    # Inicialización del paquete
-├── test_common.py                 # Utilidades compartidas (MockSession, Colors, asserts)
-├── test_models.py                 # Tests de modelos (Product, User, Order, OrderItem)
+├── __init__.py                    # Inicialització del paquet
+├── test_common.py                 # Utilitats compartides (MockSession, Colors, asserts)
+├── test_models.py                 # Tests de models (Product, User, Order, OrderItem)
 ├── test_cart_service.py           # Tests de CartService
 ├── test_order_service.py          # Tests de OrderService
 ├── test_user_service.py           # Tests de UserService
@@ -16,64 +16,63 @@ tests/
 ├── test_admin_service.py          # Tests de AdminService
 ├── test_company_service.py        # Tests de CompanyService
 ├── test_recommendation_service.py # Tests de RecommendationService
-├── test_validators.py             # Tests de validadores (DNI, NIE, CIF)
-├── test_web_routes.py             # Tests de rutas Flask (integración web)
-├── test_security.py               # Tests de seguridad (XSS, SQL injection, etc.)
-├── test_integration.py            # Tests end-to-end e integración
-└── test_runner.py                 # Ejecutor principal de todos los tests
+├── test_validators.py             # Tests de validadors (DNI, NIE, CIF)
+├── test_web_routes.py             # Tests de rutes Flask (integració web)
+├── test_security.py               # Tests de seguretat (XSS, SQL injection, etc.)
+├── test_integration.py            # Tests end-to-end i integració
+└── test_runner.py                 # Executor principal de tots els tests
 ```
 
-## 🚀 Ejecutar Tests
+## 🚀 Executar Tests
 
-### Ejecutar todos los tests (recomendado):
+### Executar tots els tests (recomanat):
 ```bash
-# Desde la raíz del proyecto:
+# Des de l'arrel del projecte:
 python3 tests/run_tests.py
 
-# O usando el script bash:
+# O usant el script bash:
 bash tests/run_tests.sh
 
-# O desde dentro de la carpeta tests:
+# O des de dins de la carpeta tests:
 cd tests && python3 run_tests.py
 ```
 
-### Ejecutar directamente el test runner:
+### Executar directament el test runner:
 ```bash
 python3 -m tests.test_runner
 ```
 
-### Ejecutar un módulo específico:
+### Executar un mòdul específic:
 ```bash
-# Ejemplo: solo tests de CartService
+# Exemple: només tests de CartService
 python -c "from tests import test_cart_service; import tests.test_common as tc; tc.init_test_db(); [tc.run_test(name.replace('test_', ''), getattr(test_cart_service, name)) for name in dir(test_cart_service) if name.startswith('test_')]"
 ```
 
-### Ejecutar un test específico:
+### Executar un test específic:
 ```python
 from tests.test_common import *
 from tests import test_cart_service
 
 init_test_db()
-run_test("Cart - Agregar producto", test_cart_service.test_cart_add)
+run_test("Cart - Afegir producte", test_cart_service.test_cart_add)
 ```
 
-## 📊 Ventajas de esta Organización
+## 📊 Avantatges d'aquesta Organització
 
-1. **Mantenibilidad**: Archivos más pequeños y fáciles de navegar
-2. **Organización**: Refleja la estructura del código fuente
-3. **Ejecución selectiva**: Puedes ejecutar solo los tests de un módulo
-4. **Escalabilidad**: Fácil agregar nuevos tests
-5. **Buenas prácticas**: Sigue estándares de Python y testing
+1. **Mantenibilitat**: Arxius més petits i fàcils de navegar
+2. **Organització**: Reflecteix l'estructura del codi font
+3. **Execució selectiva**: Pots executar només els tests d'un mòdul
+4. **Escalabilitat**: Fàcil afegir nous tests
+5. **Bones pràctiques**: Segueix estàndards de Python i testing
 
-## 📝 Notas
+## 📝 Notes
 
-- Todos los tests usan `test.db` como base de datos de prueba (se crea y elimina automáticamente)
-- Las utilidades comunes están en `test_common.py`
-- El test runner (`test_runner.py`) ejecuta todos los tests y muestra un resumen
+- Tots els tests usen `test.db` com a base de dades de prova (es crea i s'elimina automàticament)
+- Les utilitats comunes estan a `test_common.py`
+- El test runner (`test_runner.py`) executa tots els tests i mostra un resum
 
-## 📝 Scripts de Ejecución
+## 📝 Scripts d'Execució
 
-- `tests/run_tests.py`: Script principal para ejecutar todos los tests (recomendado)
-- `tests/run_tests.sh`: Script bash alternativo
-- `tests/test_runner.py`: Ejecutor interno de tests (usado por los scripts anteriores)
-
+- `tests/run_tests.py`: Script principal per executar tots els tests (recomanat)
+- `tests/run_tests.sh`: Script bash alternatiu
+- `tests/test_runner.py`: Executor intern de tests (usat pels scripts anteriors)

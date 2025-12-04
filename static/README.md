@@ -1,53 +1,53 @@
-# Recursos Estáticos - TechShop
+# Recursos Estàtics - TechShop
 
-## 📁 Descripción
+## 📁 Descripció
 
-Esta carpeta contiene todos los recursos estáticos de la aplicación: archivos CSS, JavaScript e imágenes. Estos recursos son servidos directamente por Flask sin procesamiento del servidor.
+Aquesta carpeta conté tots els recursos estàtics de l'aplicació: arxius CSS, JavaScript i imatges. Aquests recursos són servits directament per Flask sense processament del servidor.
 
-## 🎯 Responsabilidad
+## 🎯 Responsabilitat
 
-Los recursos estáticos proporcionan:
-- Estilos visuales (CSS)
-- Interactividad del cliente (JavaScript)
-- Imágenes y assets visuales
+Els recursos estàtics proporcionen:
+- Estils visuals (CSS)
+- Interactivitat del client (JavaScript)
+- Imatges i assets visuals
 
 ## 📂 Estructura
 
 ```
 static/
 ├── css/
-│   └── style.css           # Estilos principales de la aplicación
+│   └── style.css           # Estils principals de l'aplicació
 │
 ├── js/
 │   └── main.js             # JavaScript principal
 │
 └── img/
     ├── carrito/
-    │   └── 1.png           # Icono del carrito
+    │   └── 1.png           # Icona del carretó
     ├── logout/
-    │   └── 1.png           # Icono de logout
-    ├── flags/               # Banderas de idiomas
+    │   └── 1.png           # Icona de logout
+    ├── flags/               # Banderes d'idiomes
     │   ├── cat/1.svg       # Bandera catalana
-    │   ├── esp/1.png       # Bandera española
-    │   └── eng/1.png       # Bandera inglesa
-    └── products/            # Imágenes de productos
-        └── {product_id}/   # Carpeta por ID de producto
-            ├── 1.jpg       # Primera imagen (principal)
-            ├── 2.png       # Segunda imagen
-            ├── 3.png       # Tercera imagen
-            └── 4.png       # Cuarta imagen (máximo 4)
+    │   ├── esp/1.png       # Bandera espanyola
+    │   └── eng/1.png       # Bandera anglesa
+    └── products/            # Imatges de productes
+        └── {product_id}/   # Carpeta per ID de producte
+            ├── 1.jpg       # Primera imatge (principal)
+            ├── 2.png       # Segona imatge
+            ├── 3.png       # Tercera imatge
+            └── 4.png       # Quarta imatge (màxim 4)
 ```
 
 ## 🎨 CSS (style.css)
 
-### Características:
-- Variables CSS para colores, espaciado y tipografía
-- Diseño responsive
-- Estilos para formularios, botones, tarjetas
-- Efectos hover y transiciones
-- Sistema de colores consistente
+### Característiques:
+- Variables CSS per colors, espaiat i tipografia
+- Disseny responsive
+- Estils per formularis, botons, targetes
+- Efectes hover i transicions
+- Sistema de colors consistent
 
-### Variables principales:
+### Variables principals:
 ```css
 --color-primary
 --color-secondary
@@ -59,42 +59,42 @@ static/
 
 ## 📜 JavaScript (main.js)
 
-### Funcionalidades:
-- Validación de formularios en cliente
-- Validación de DNI/NIE/CIF en tiempo real
-- Manejo de eventos del carrito
-- Actualización dinámica de imágenes en detalle de producto
-- Comunicación entre ventanas (políticas de privacidad)
-- Cambio de idioma
+### Funcionalitats:
+- Validació de formularis en client
+- Validació de DNI/NIE/CIF en temps real
+- Maneig d'esdeveniments del carretó
+- Actualització dinàmica d'imatges en detall de producte
+- Comunicació entre finestres (polítiques de privacitat)
+- Canvi d'idioma
 
-### Validaciones implementadas:
-- `validarDNI(dni)`: Validación de DNI español
-- `validarNIE(nie)`: Validación de NIE
-- `validarCIF(cif)`: Validación de CIF
+### Validacions implementades:
+- `validarDNI(dni)`: Validació de DNI espanyol
+- `validarNIE(nie)`: Validació de NIE
+- `validarCIF(cif)`: Validació de CIF
 
-## 🖼️ Imágenes
+## 🖼️ Imatges
 
-### Estructura de imágenes de productos:
-- **Ubicación**: `static/img/products/{product_id}/`
-- **Formato**: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`
+### Estructura d'imatges de productes:
+- **Ubicació**: `static/img/products/{product_id}/`
+- **Format**: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`
 - **Nomenclatura**: `1.ext`, `2.ext`, `3.ext`, `4.ext`
-- **Máximo**: 4 imágenes por producto
-- **Principal**: La primera imagen (orden alfabético) se muestra como principal
+- **Màxim**: 4 imatges per producte
+- **Principal**: La primera imatge (ordre alfabètic) es mostra com a principal
 
-### Ejemplo:
+### Exemple:
 ```
 static/img/products/1/
-├── 1.jpg    # Imagen principal
+├── 1.jpg    # Imatge principal
 ├── 2.png    # Miniatura
 ├── 3.png    # Miniatura
 └── 4.png    # Miniatura
 ```
 
-### Procesamiento:
-- Las imágenes se comprimen al 80% al subirlas (empresas)
-- Se renombran automáticamente como `idfoto.ext`
+### Processament:
+- Les imatges es comprimeixen al 80% en pujar-les (empreses)
+- Es renombren automàticament com `idfoto.ext`
 
-## 💡 Uso en Templates
+## 💡 Ús en Plantilles
 
 ```jinja2
 <!-- CSS -->
@@ -103,22 +103,21 @@ static/img/products/1/
 <!-- JavaScript -->
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 
-<!-- Imágenes -->
-<img src="{{ url_for('static', filename='img/products/1/1.jpg') }}" alt="Producto">
+<!-- Imatges -->
+<img src="{{ url_for('static', filename='img/products/1/1.jpg') }}" alt="Producte">
 
-<!-- Banderas de idioma -->
+<!-- Banderes d'idioma -->
 <img src="{{ url_for('static', filename='img/flags/cat/1.svg') }}" alt="Català">
 ```
 
-## ⚠️ Reglas Importantes
+## ⚠️ Regles Importants
 
-1. **No lógica de negocio**: JavaScript solo para validaciones y UX
-2. **Validaciones dobles**: Las validaciones del cliente deben repetirse en el servidor
-3. **Optimización**: Imágenes comprimidas para mejor rendimiento
-4. **Organización**: Estructura clara por tipo de recurso
+1. **No lògica de negoci**: JavaScript només per validacions i UX
+2. **Validacions dobles**: Les validacions del client han de repetir-se en el servidor
+3. **Optimització**: Imatges comprimides per millor rendiment
+4. **Organització**: Estructura clara per tipus de recurs
 
-## 📚 Referencias
+## 📚 Referències
 
-- Ver `docs/reglas_techshop.md` sección 4 para validaciones del frontend
-- Ver `templates/` para ver cómo se usan los recursos estáticos
-
+- Veure `docs/reglas_techshop.md` secció 4 per a validacions del frontend
+- Veure `templates/` per a veure com s'usen els recursos estàtics

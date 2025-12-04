@@ -1,98 +1,98 @@
-# Utilidades - TechShop
+# Utilitats - TechShop
 
-## 📁 Descripción
+## 📁 Descripció
 
-Esta carpeta contiene funciones y clases de utilidad que son compartidas por múltiples partes de la aplicación. Estas utilidades proporcionan funcionalidades transversales que no pertenecen a una capa específica.
+Aquesta carpeta conté funcions i classes d'utilitat que són compartides per múltiples parts de l'aplicació. Aquestes utilitats proporcionen funcionalitats transversals que no pertanyen a una capa específica.
 
-## 🎯 Responsabilidad
+## 🎯 Responsabilitat
 
-Las utilidades proporcionan:
-- Funciones de validación reutilizables
-- Servicios auxiliares (email, facturas, traducciones)
-- Funciones helper compartidas
+Les utilitats proporcionen:
+- Funcions de validació reutilitzables
+- Serveis auxiliars (email, factures, traduccions)
+- Funcions helper compartides
 
 ## 📂 Estructura
 
 ```
 utils/
-├── __init__.py              # Inicialización del módulo
-├── validators.py            # Validadores de datos (DNI, NIE, CIF, etc.)
-├── email_service.py         # Servicio de envío de emails
-├── invoice_generator.py     # Generador de facturas PDF
-└── translations.py          # Sistema de traducciones (i18n)
+├── __init__.py              # Inicialització del mòdul
+├── validators.py            # Validadors de dades (DNI, NIE, CIF, etc.)
+├── email_service.py         # Servei d'enviament d'emails
+├── invoice_generator.py     # Generador de factures PDF
+└── translations.py          # Sistema de traduccions (i18n)
 ```
 
-## 🔧 Utilidades Disponibles
+## 🔧 Utilitats Disponibles
 
 ### **validators.py**
-Validadores de datos del cliente (DNI, NIE, CIF).
+Validadors de dades del client (DNI, NIE, CIF).
 
-**Funciones:**
-- `validar_dni(dni)`: Valida formato y letra de DNI español
-- `validar_nie(nie)`: Valida formato y letra de NIE
-- `validar_cif(cif)`: Valida formato y dígito de control de CIF
+**Funcions:**
+- `validar_dni(dni)`: Valida format i lletra de DNI espanyol
+- `validar_nie(nie)`: Valida format i lletra de NIE
+- `validar_cif(cif)`: Valida format i dígit de control de CIF
 - `validar_dni_nie(dni_nie)`: Valida DNI o NIE
 - `validar_cif_nif(cif_nif)`: Valida CIF o NIF
 
-**Uso:**
+**Ús:**
 ```python
 from utils.validators import validar_dni, validar_cif_nif
 
 if validar_dni("12345678Z"):
-    print("DNI válido")
+    print("DNI vàlid")
 ```
 
-**Ubicación:** `utils/validators.py`
+**Ubicació:** `utils/validators.py`
 
 ### **email_service.py**
-Servicio para enviar emails (SMTP).
+Servei per enviar emails (SMTP).
 
-**Funciones:**
-- `send_order_confirmation_email(...)`: Envía email de confirmación de pedido con factura adjunta
-- `send_welcome_email(email, username)`: Envía email de bienvenida al registrarse
-- `send_password_reset_email(email, username, new_password)`: Envía nueva contraseña por email
+**Funcions:**
+- `send_order_confirmation_email(...)`: Envia email de confirmació de comanda amb factura adjunta
+- `send_welcome_email(email, username)`: Envia email de benvinguda en registrar-se
+- `send_password_reset_email(email, username, new_password)`: Envia nova contrasenya per email
 
-**Configuración:**
-- Usa variables de entorno: `EMAIL`, `GOOGLE_PASSWORD_APP`
-- Soporta HTML y adjuntos PDF
+**Configuració:**
+- Usa variables d'entorn: `EMAIL`, `GOOGLE_PASSWORD_APP`
+- Suporta HTML i adjunts PDF
 
-**Ubicación:** `utils/email_service.py`
+**Ubicació:** `utils/email_service.py`
 
 ### **invoice_generator.py**
-Generador de facturas en formato PDF.
+Generador de factures en format PDF.
 
-**Funciones:**
-- `generate_invoice_pdf(order_id, user_id)`: Genera factura PDF para una comanda
+**Funcions:**
+- `generate_invoice_pdf(order_id, user_id)`: Genera factura PDF per a una comanda
 
-**Características:**
-- Usa ReportLab para generar PDFs
-- Incluye datos de empresa y cliente
-- Tabla de productos con detalles
-- Estilo consistente y profesional
+**Característiques:**
+- Usa ReportLab per generar PDFs
+- Inclou dades d'empresa i client
+- Taula de productes amb detalls
+- Estil consistent i professional
 
-**Ubicación:** `utils/invoice_generator.py`
+**Ubicació:** `utils/invoice_generator.py`
 
 ### **translations.py**
-Sistema de internacionalización (i18n) y localización (l10n).
+Sistema d'internacionalització (i18n) i localització (l10n).
 
-**Funciones:**
-- `get_translation(key, lang)`: Obtiene traducción de una clave
-- `get_available_languages()`: Lista idiomas disponibles
-- `get_language_name(lang)`: Nombre del idioma
+**Funcions:**
+- `get_translation(key, lang)`: Obté traducció d'una clau
+- `get_available_languages()`: Llista idiomes disponibles
+- `get_language_name(lang)`: Nom de l'idioma
 
-**Idiomas soportados:**
-- `cat`: Catalán (por defecto)
-- `esp`: Español
-- `eng`: Inglés
+**Idiomes suportats:**
+- `cat`: Català (per defecte)
+- `esp`: Espanyol
+- `eng`: Anglès
 
-**Uso en templates:**
+**Ús en templates:**
 ```jinja2
-{{ _('welcome') }}  <!-- Muestra "Benvingut", "Bienvenido" o "Welcome" según el idioma -->
+{{ _('welcome') }}  <!-- Mostra "Benvingut", "Bienvenido" o "Welcome" segons l'idioma -->
 ```
 
-**Ubicación:** `utils/translations.py`
+**Ubicació:** `utils/translations.py`
 
-## 💡 Uso General
+## 💡 Ús General
 
 ```python
 from utils.validators import validar_dni_nie
@@ -104,19 +104,18 @@ if validar_dni_nie("12345678Z"):
     # Enviar email
     send_welcome_email("user@example.com", "username")
     
-# Obtener traducción
+# Obtenir traducció
 message = get_translation('welcome', 'cat')
 ```
 
-## ⚠️ Reglas Importantes
+## ⚠️ Regles Importants
 
-1. **Reutilizables**: Las funciones deben ser genéricas y reutilizables
-2. **Sin dependencias de capas**: No deben depender de rutas o templates
-3. **Documentación**: Todas las funciones deben tener docstrings
-4. **Validaciones**: Los validadores deben funcionar tanto en cliente como en servidor
+1. **Reutilitzables**: Les funcions han de ser genèriques i reutilitzables
+2. **Sense dependències de capes**: No han de dependre de rutes o templates
+3. **Documentació**: Totes les funcions han de tenir docstrings
+4. **Validacions**: Els validadors han de funcionar tant en client com en servidor
 
-## 📚 Referencias
+## 📚 Referències
 
-- Ver `docs/reglas_techshop.md` para más detalles sobre validaciones
-- Ver `routes/` para ver cómo se usan las utilidades
-
+- Veure `docs/reglas_techshop.md` per a més detalls sobre validacions
+- Veure `routes/` per a veure com s'usen les utilitats

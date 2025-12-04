@@ -1,10 +1,9 @@
-# Documentación de TechShop
+# Documentació de TechShop
 
-Esta carpeta contiene toda la documentación del proyecto:
+Aquesta carpeta conté tota la documentació del projecte:
 
-- **memoria.md**: Memoria completa de la práctica
-- **reglas_techshop.md**: Reglas y requisitos del proyecto
-- **comparacio_columnes.md**: Comparación de columnas de la base de datos
-- **database_schema.sql**: Esquema de la base de datos
-- **diagrama_clases.xml**: Diagrama de clases en formato XML
-
+- **memoria.md**: Memòria completa de la pràctica
+- **reglas_techshop.md**: Regles i requisits del projecte
+- **comparacio_columnes.md**: Comparació de columnes de la base de dades
+- **database_schema.sql**: Esquema de la base de dades
+- **diagrama_clases.xml**: Diagrama de classes en format XML

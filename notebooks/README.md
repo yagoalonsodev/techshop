@@ -1,6 +1,5 @@
-# Notebooks de Análisis
+# Notebooks d'Anàlisi
 
-Esta carpeta contiene notebooks de Jupyter para análisis de datos:
+Aquesta carpeta conté notebooks de Jupyter per anàlisi de dades:
 
-- **analisi_dataset.ipynb**: Análisis del dataset de experiencias de compra
-
+- **analisi_dataset.ipynb**: Anàlisi del dataset d'experiències de compra

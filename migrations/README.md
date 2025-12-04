@@ -1,86 +1,85 @@
-# Migraciones de Base de Datos - TechShop
+# Migracions de Base de Dades - TechShop
 
-## 📁 Descripción
+## 📁 Descripció
 
-Esta carpeta contiene scripts de migración para actualizar el esquema de la base de datos cuando se añaden nuevas funcionalidades o campos. Las migraciones permiten evolucionar la estructura de la base de datos sin perder datos existentes.
+Aquesta carpeta conté scripts de migració per actualitzar l'esquema de la base de dades quan s'afegeixen noves funcionalitats o camps. Les migracions permeten evolucionar l'estructura de la base de dades sense perdre dades existents.
 
-## 🎯 Responsabilidad
+## 🎯 Responsabilitat
 
-Los scripts de migración:
-- Modifican el esquema de la base de datos
-- Añaden nuevas columnas o tablas
-- Migran datos existentes cuando es necesario
-- Mantienen la integridad de los datos
+Els scripts de migració:
+- Modifiquen l'esquema de la base de dades
+- Afegeixen noves columnes o taules
+- Migren dades existents quan és necessari
+- Mantenen la integritat de les dades
 
 ## 📂 Estructura
 
 ```
 migrations/
-├── __init__.py                    # Inicialización del módulo
-├── migrate_database.py            # Migración general
-├── migrate_add_company_id.py      # Añadir campo company_id a Product
-└── migrate_add_dni_nif.py         # Añadir campos DNI y NIF a User
+├── __init__.py                    # Inicialització del mòdul
+├── migrate_database.py            # Migració general
+├── migrate_add_company_id.py      # Afegir camp company_id a Product
+└── migrate_add_dni_nif.py         # Afegir camps DNI i NIF a User
 ```
 
-## 🔧 Migraciones Disponibles
+## 🔧 Migracions Disponibles
 
 ### **migrate_database.py**
-Migración general que aplica todas las migraciones pendientes.
+Migració general que aplica totes les migracions pendents.
 
-**Uso:**
+**Ús:**
 ```bash
 python3 migrations/migrate_database.py
 ```
 
-**Funcionalidades:**
-- Verifica el estado actual de la base de datos
-- Aplica migraciones pendientes en orden
-- Registra las migraciones aplicadas
+**Funcionalitats:**
+- Verifica l'estat actual de la base de dades
+- Aplica migracions pendents en ordre
+- Registra les migracions aplicades
 
-**Ubicación:** `migrations/migrate_database.py`
+**Ubicació:** `migrations/migrate_database.py`
 
 ### **migrate_add_company_id.py**
-Añade el campo `company_id` a la tabla `Product` para asociar productos con empresas.
+Afegeix el camp `company_id` a la taula `Product` per associar productes amb empreses.
 
-**Cambios:**
-- Añade columna `company_id INTEGER` a `Product`
-- Establece relación con `User(id)` donde `account_type = 'company'`
-- Permite que empresas gestionen sus propios productos
+**Canvis:**
+- Afegeix columna `company_id INTEGER` a `Product`
+- Estableix relació amb `User(id)` on `account_type = 'company'`
+- Permet que empreses gestionin els seus propis productes
 
-**Ubicación:** `migrations/migrate_add_company_id.py`
+**Ubicació:** `migrations/migrate_add_company_id.py`
 
 ### **migrate_add_dni_nif.py**
-Añade campos `dni` y `nif` a la tabla `User` para validación fiscal.
+Afegeix camps `dni` i `nif` a la taula `User` per validació fiscal.
 
-**Cambios:**
-- Añade columna `dni VARCHAR(20)` para usuarios individuales
-- Añade columna `nif VARCHAR(20)` para empresas
-- Permite validación de documentos fiscales
+**Canvis:**
+- Afegeix columna `dni VARCHAR(20)` per usuaris individuals
+- Afegeix columna `nif VARCHAR(20)` per empreses
+- Permet validació de documents fiscals
 
-**Ubicación:** `migrations/migrate_add_dni_nif.py`
+**Ubicació:** `migrations/migrate_add_dni_nif.py`
 
-## 💡 Uso
+## 💡 Ús
 
-### Ejecutar una migración específica:
+### Executar una migració específica:
 ```bash
 python3 migrations/migrate_add_dni_nif.py
 ```
 
-### Ejecutar todas las migraciones:
+### Executar totes les migracions:
 ```bash
 python3 migrations/migrate_database.py
 ```
 
-## ⚠️ Notas Importantes
+## ⚠️ Notes Importants
 
-1. **Backup**: Siempre haz backup de la base de datos antes de ejecutar migraciones
-2. **Orden**: Las migraciones deben ejecutarse en orden cronológico
-3. **Reversibilidad**: Algunas migraciones no son reversibles
-4. **Datos existentes**: Las migraciones intentan preservar datos existentes
+1. **Backup**: Sempre fes backup de la base de dades abans d'executar migracions
+2. **Ordre**: Les migracions s'han d'executar en ordre cronològic
+3. **Reversibilitat**: Algunes migracions no són reversibles
+4. **Dades existents**: Les migracions intenten preservar dades existents
 
-## 📚 Referencias
+## 📚 Referències
 
-- Ver `docs/database_schema.sql` para el esquema completo
-- Ver `docs/reglas_techshop.md` para más detalles sobre la base de datos
-- Ver `scripts/init_database.py` para inicialización inicial
-
+- Veure `docs/database_schema.sql` per a l'esquema complet
+- Veure `docs/reglas_techshop.md` per a més detalls sobre la base de dades
+- Veure `scripts/init_database.py` per a inicialització inicial

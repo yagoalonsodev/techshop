@@ -1,8 +1,7 @@
-# Datos de TechShop
+# Dades de TechShop
 
-Esta carpeta contiene archivos de datos del proyecto:
+Aquesta carpeta conté arxius de dades del projecte:
 
-- **techshop_purchase_experiences.csv**: Dataset de experiencias de compra
+- **techshop_purchase_experiences.csv**: Dataset d'experiències de compra
 
-Nota: La base de datos `techshop.db` se mantiene en la raíz del proyecto para facilitar el acceso desde la aplicación.
-
+Nota: La base de dades `techshop.db` es manté a l'arrel del projecte per facilitar l'accés des de l'aplicació.

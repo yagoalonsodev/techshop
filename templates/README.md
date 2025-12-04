@@ -1,35 +1,35 @@
-# Templates - Capa de Presentación - TechShop
+# Plantilles - Capa de Presentació - TechShop
 
-## 📁 Descripción
+## 📁 Descripció
 
-Esta carpeta contiene las plantillas HTML que forman la **capa de presentación** de la aplicación, siguiendo el patrón **Vista** de la arquitectura MVC. Las plantillas utilizan Jinja2 como motor de plantillas y **no contienen lógica de negocio ni acceso a datos**.
+Aquesta carpeta conté les plantilles HTML que formen la **capa de presentació** de l'aplicació, seguint el patró **Vista** de l'arquitectura MVC. Les plantilles utilitzen Jinja2 com a motor de plantilles i **no contenen lògica de negoci ni accés a dades**.
 
-## 🎯 Responsabilidad
+## 🎯 Responsabilitat
 
-Las plantillas son responsables únicamente de:
-- Mostrar datos al usuario
-- Recibir datos del usuario (formularios)
-- **NO contienen lógica de negocio**
-- **NO contienen consultas SQL**
-- **NO contienen cálculos complejos**
+Les plantilles són responsables únicament de:
+- Mostrar dades a l'usuari
+- Rebre dades de l'usuari (formularis)
+- **NO contenen lògica de negoci**
+- **NO contenen consultes SQL**
+- **NO contenen càlculs complexos**
 
 ## 📂 Estructura
 
 ```
 templates/
 ├── base.html                    # Plantilla base (layout principal)
-├── products.html                # Catálogo de productos
-├── product_detail.html          # Detalle de producto
-├── checkout.html                # Página de checkout
-├── order_confirmation.html      # Confirmación de pedido
-├── login.html                   # Página de login
-├── register.html                # Página de registro
-├── forgot_password.html         # Recuperación de contraseña
+├── products.html                # Catàleg de productes
+├── product_detail.html          # Detall de producte
+├── checkout.html                # Pàgina de checkout
+├── order_confirmation.html      # Confirmació de comanda
+├── login.html                   # Pàgina de login
+├── register.html                # Pàgina de registre
+├── forgot_password.html         # Recuperació de contrasenya
 ├── complete_google_profile.html # Completar perfil Google
-├── policies.html                # Políticas de privacidad
-├── profile.html                 # Perfil de usuario
+├── policies.html                # Polítiques de privacitat
+├── profile.html                 # Perfil d'usuari
 │
-├── admin/                       # Templates de administración
+├── admin/                       # Plantilles d'administració
 │   ├── dashboard.html
 │   ├── products.html
 │   ├── product_form.html
@@ -38,112 +38,112 @@ templates/
 │   ├── user_create_form.html
 │   └── orders.html
 │
-└── company/                     # Templates para empresas
+└── company/                     # Plantilles per empreses
     ├── products.html
     └── product_form.html
 ```
 
-## 🎨 Plantillas Principales
+## 🎨 Plantilles Principals
 
 ### **base.html**
-Plantilla base que define el layout común de todas las páginas.
+Plantilla base que defineix el layout comú de totes les pàgines.
 
-**Características:**
-- Header con navegación
-- Sistema de traducciones (banderas de idioma)
-- Mensajes flash
-- Footer común
-- Bloque `{% block content %}` para contenido específico
+**Característiques:**
+- Header amb navegació
+- Sistema de traduccions (banderes d'idioma)
+- Missatges flash
+- Footer comú
+- Bloc `{% block content %}` per a contingut específic
 
-**Uso:**
+**Ús:**
 ```jinja2
 {% extends "base.html" %}
 {% block content %}
-  <!-- Contenido específico -->
+  <!-- Contingut específic -->
 {% endblock %}
 ```
 
 ### **products.html**
-Muestra el catálogo completo de productos.
+Mostra el catàleg complet de productes.
 
-**Características:**
-- Lista de productos con imágenes
-- Formulario para añadir al carrito
-- Recomendaciones personalizadas
-- Sección de tendencias (más vendidos)
+**Característiques:**
+- Llista de productes amb imatges
+- Formulari per afegir al carretó
+- Recomanacions personalitzades
+- Secció de tendències (més venuts)
 
 ### **product_detail.html**
-Vista detallada de un producto individual.
+Vista detallada d'un producte individual.
 
-**Características:**
-- Galería de imágenes (hasta 4)
-- Hover para cambiar imagen principal
-- Información completa del producto
-- Formulario para añadir al carrito
+**Característiques:**
+- Galeria d'imatges (fins a 4)
+- Hover per canviar imatge principal
+- Informació completa del producte
+- Formulari per afegir al carretó
 
 ### **checkout.html**
-Página de proceso de compra.
+Pàgina de procés de compra.
 
-**Características:**
-- Resumen del carrito
-- Formulario adaptativo:
-  - Usuario autenticado: solo dirección
-  - Invitado: todos los campos o opción de login
-- Validaciones HTML5
+**Característiques:**
+- Resum del carretó
+- Formulari adaptatiu:
+  - Usuari autenticat: només adreça
+  - Convidat: tots els camps o opció de login
+- Validacions HTML5
 
 ### **profile.html**
-Perfil de usuario con secciones.
+Perfil d'usuari amb seccions.
 
-**Secciones:**
-- Ver datos personales
-- Editar datos
-- Historial de compras (con descarga de facturas)
+**Seccions:**
+- Veure dades personals
+- Editar dades
+- Historial de compres (amb descàrrega de factures)
 
-## 🌐 Sistema de Traducciones
+## 🌐 Sistema de Traduccions
 
-Todas las plantillas usan el sistema de traducciones:
+Totes les plantilles usen el sistema de traduccions:
 
 ```jinja2
-{{ _('welcome') }}              <!-- Texto traducido -->
+{{ _('welcome') }}              <!-- Text traduït -->
 {{ _('products') }}              <!-- "Productes", "Productos", "Products" -->
 {{ current_language }}           <!-- Idioma actual: 'cat', 'esp', 'eng' -->
 ```
 
-**Idiomas soportados:**
-- Catalán (por defecto)
-- Español
-- Inglés
+**Idiomes suportats:**
+- Català (per defecte)
+- Espanyol
+- Anglès
 
-## 📝 Uso de Blueprints
+## 📝 Ús de Blueprints
 
-Todas las referencias a rutas usan nombres de blueprints:
+Totes les referències a rutes usen noms de blueprints:
 
 ```jinja2
-{{ url_for('main.show_products') }}        <!-- En lugar de 'show_products' -->
-{{ url_for('auth.login') }}                <!-- En lugar de 'login' -->
-{{ url_for('profile.profile') }}           <!-- En lugar de 'profile' -->
-{{ url_for('admin.admin_dashboard') }}      <!-- En lugar de 'admin_dashboard' -->
+{{ url_for('main.show_products') }}        <!-- En lloc de 'show_products' -->
+{{ url_for('auth.login') }}                <!-- En lloc de 'login' -->
+{{ url_for('profile.profile') }}           <!-- En lloc de 'profile' -->
+{{ url_for('admin.admin_dashboard') }}      <!-- En lloc de 'admin_dashboard' -->
 ```
 
-## ⚠️ Reglas Importantes (según reglas_techshop.md)
+## ⚠️ Regles Importants (segons reglas_techshop.md)
 
-1. **No lógica de negocio**: Las plantillas solo muestran datos
-2. **No consultas SQL**: No se accede directamente a la base de datos
-3. **Validaciones HTML5**: Se usan atributos `required`, `minlength`, `maxlength`, `pattern`
-4. **Separación de responsabilidades**: La presentación está separada de la lógica
-5. **Reutilización**: Se usa `base.html` para evitar duplicación
+1. **No lògica de negoci**: Les plantilles només mostren dades
+2. **No consultes SQL**: No s'accedeix directament a la base de dades
+3. **Validacions HTML5**: S'usen atributs `required`, `minlength`, `maxlength`, `pattern`
+4. **Separació de responsabilitats**: La presentació està separada de la lògica
+5. **Reutilització**: S'usa `base.html` per evitar duplicació
 
-## 🔒 Validaciones en Templates
+## 🔒 Validacions en Plantilles
 
-### Atributos HTML5 usados:
-- `required`: Campos obligatorios
-- `minlength` / `maxlength`: Longitud de texto
-- `type="email"`: Validación de email
-- `type="number"`: Campos numéricos
-- `min` / `max`: Rangos numéricos
-- `pattern`: Patrones de validación (DNI, etc.)
+### Atributs HTML5 usats:
+- `required`: Camps obligatoris
+- `minlength` / `maxlength`: Longitud de text
+- `type="email"`: Validació d'email
+- `type="number"`: Camps numèrics
+- `min` / `max`: Rangs numèrics
+- `pattern`: Patrons de validació (DNI, etc.)
 
-### Ejemplo:
+### Exemple:
 ```html
 <input type="text" 
        name="username" 
@@ -153,9 +153,8 @@ Todas las referencias a rutas usan nombres de blueprints:
        pattern="[a-zA-Z0-9_]+">
 ```
 
-## 📚 Referencias
+## 📚 Referències
 
-- Ver `docs/reglas_techshop.md` sección 4 para validaciones del frontend
-- Ver `routes/` para ver cómo se renderizan las plantillas
-- Ver `utils/translations.py` para el sistema de traducciones
-
+- Veure `docs/reglas_techshop.md` secció 4 per a validacions del frontend
+- Veure `routes/` per a veure com es renderitzen les plantilles
+- Veure `utils/translations.py` per al sistema de traduccions

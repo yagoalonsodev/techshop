@@ -1,101 +1,100 @@
-# Modelos de Datos - TechShop
+# Models de Dades - TechShop
 
-## 📁 Descripción
+## 📁 Descripció
 
-Esta carpeta contiene las clases de datos que representan las entidades de la base de datos, siguiendo el patrón **Model** de la arquitectura MVC y la **capa de datos** de la arquitectura de tres capas.
+Aquesta carpeta conté les classes de dades que representen les entitats de la base de dades, seguint el patró **Model** de l'arquitectura MVC i la **capa de dades** de l'arquitectura de tres capes.
 
-## 🎯 Responsabilidad
+## 🎯 Responsabilitat
 
-Los modelos representan la estructura de datos y proporcionan una interfaz orientada a objetos para trabajar con las entidades de la base de datos, **sin contener lógica de negocio**.
+Els models representen l'estructura de dades i proporcionen una interfície orientada a objectes per treballar amb les entitats de la base de dades, **sense contenir lògica de negoci**.
 
 ## 📂 Estructura
 
 ```
 models/
-├── __init__.py          # Exporta todos los modelos
-├── models.py            # Archivo de compatibilidad (importa desde aquí)
-├── product.py           # Modelo Product
-├── user.py              # Modelo User
-├── order.py             # Modelo Order
-└── order_item.py       # Modelo OrderItem
+├── __init__.py          # Exporta tots els models
+├── models.py            # Arxiu de compatibilitat (importa des d'aquí)
+├── product.py           # Model Product
+├── user.py              # Model User
+├── order.py             # Model Order
+└── order_item.py       # Model OrderItem
 ```
 
-## 📋 Modelos Disponibles
+## 📋 Models Disponibles
 
 ### **Product**
-Representa un producto disponible en la tienda.
+Representa un producte disponible a la botiga.
 
-**Atributos:**
-- `id` (int): Identificador único
-- `name` (str): Nombre del producto
-- `price` (Decimal): Precio del producto
-- `stock` (int): Unidades disponibles en inventario
+**Atributs:**
+- `id` (int): Identificador únic
+- `name` (str): Nom del producte
+- `price` (Decimal): Preu del producte
+- `stock` (int): Unitats disponibles en inventari
 
-**Ubicación:** `models/product.py`
+**Ubicació:** `models/product.py`
 
 ### **User**
-Representa un usuario del sistema.
+Representa un usuari del sistema.
 
-**Atributos:**
-- `id` (int): Identificador único
-- `username` (str): Nombre de usuario (4-20 caracteres)
-- `password_hash` (str): Hash de la contraseña (no texto plano)
-- `email` (str): Dirección de correo electrónico
-- `address` (str): Dirección de envío
-- `account_type` (str): Tipo de cuenta ('user' o 'company')
-- `role` (str): Rol del usuario ('common' o 'admin')
-- `dni` (str): DNI para usuarios individuales
-- `nif` (str): NIF para empresas
-- `created_at` (datetime): Fecha de creación
+**Atributs:**
+- `id` (int): Identificador únic
+- `username` (str): Nom d'usuari (4-20 caràcters)
+- `password_hash` (str): Hash de la contrasenya (no text pla)
+- `email` (str): Adreça de correu electrònic
+- `address` (str): Adreça d'enviament
+- `account_type` (str): Tipus de compte ('user' o 'company')
+- `role` (str): Rol de l'usuari ('common' o 'admin')
+- `dni` (str): DNI per usuaris individuals
+- `nif` (str): NIF per empreses
+- `created_at` (datetime): Data de creació
 
-**Ubicación:** `models/user.py`
+**Ubicació:** `models/user.py`
 
 ### **Order**
-Representa una comanda realizada por un usuario.
+Representa una comanda realitzada per un usuari.
 
-**Atributos:**
-- `id` (int): Identificador único
+**Atributs:**
+- `id` (int): Identificador únic
 - `total` (Decimal): Total de la comanda
-- `created_at` (datetime): Fecha y hora de la comanda
-- `user_id` (int): ID del usuario que realizó la comanda
+- `created_at` (datetime): Data i hora de la comanda
+- `user_id` (int): ID de l'usuari que va realitzar la comanda
 
-**Ubicación:** `models/order.py`
+**Ubicació:** `models/order.py`
 
 ### **OrderItem**
-Representa un producto específico dentro de una comanda.
+Representa un producte específic dins d'una comanda.
 
-**Atributos:**
-- `id` (int): Identificador único
+**Atributs:**
+- `id` (int): Identificador únic
 - `order_id` (int): ID de la comanda
-- `product_id` (int): ID del producto
-- `quantity` (int): Cantidad del producto en la comanda
+- `product_id` (int): ID del producte
+- `quantity` (int): Quantitat del producte en la comanda
 
-**Ubicación:** `models/order_item.py`
+**Ubicació:** `models/order_item.py`
 
-## 🔗 Relaciones
+## 🔗 Relacions
 
-- Un **User** puede tener muchas **Order**
-- Cada **Order** puede contener muchos **OrderItem**
-- Cada **OrderItem** referencia un solo **Product**
+- Un **User** pot tenir moltes **Order**
+- Cada **Order** pot contenir molts **OrderItem**
+- Cada **OrderItem** referencia un sol **Product**
 
-## 💡 Uso
+## 💡 Ús
 
 ```python
 from models import Product, User, Order, OrderItem
 
-# Crear instancia de modelo
+# Crear instància de model
 product = Product(id=1, name="iPhone", price=999.99, stock=10)
-user = User(id=1, username="usuario", email="user@example.com", ...)
+user = User(id=1, username="usuari", email="user@example.com", ...)
 ```
 
-## ⚠️ Reglas Importantes
+## ⚠️ Regles Importants
 
-1. **No contiene lógica de negocio**: Los modelos solo representan datos
-2. **No accede directamente a la base de datos**: El acceso se hace a través de servicios
-3. **Separación de responsabilidades**: Los modelos no conocen cómo se muestran los datos ni cómo se procesan
+1. **No conté lògica de negoci**: Els models només representen dades
+2. **No accedeix directament a la base de dades**: L'accés es fa a través de serveis
+3. **Separació de responsabilitats**: Els models no coneixen com es mostren les dades ni com es processen
 
-## 📚 Referencias
+## 📚 Referències
 
-- Ver `docs/reglas_techshop.md` para más detalles sobre la arquitectura
-- Ver `docs/database_schema.sql` para el esquema completo de la base de datos
-
+- Veure `docs/reglas_techshop.md` per a més detalls sobre l'arquitectura
+- Veure `docs/database_schema.sql` per a l'esquema complet de la base de dades
