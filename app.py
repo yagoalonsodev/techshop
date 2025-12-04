@@ -44,6 +44,8 @@ from services.company_service import CompanyService
 from services.product_service import ProductService
 from utils.validators import validar_dni_nie, validar_cif_nif
 from utils.translations import get_translation, get_available_languages, get_language_name
+from utils.email_service import send_order_confirmation_email
+from utils.invoice_generator import generate_invoice_pdf
 from functools import wraps
 
 
@@ -419,6 +421,31 @@ def process_order():
             
             conn.commit()
             cart_service.clear_cart(session)
+            
+            # Enviar email de confirmación con factura (usando servicios, siguiendo arquitectura de 3 capas)
+            user_obj = user_service.get_user_by_id(user_id)
+            if user_obj and user_obj.email:
+                # Obtener datos de la orden usando el servicio (no acceso directo a BD)
+                success_order, message_order, order = order_service.get_order_by_id(order_id)
+                if success_order and order:
+                    # Obtener items de la orden usando el servicio
+                    success_items, message_items, order_items = order_service.get_order_items_for_email(order_id)
+                    if success_items:
+                        # Generar factura PDF
+                        invoice_pdf = generate_invoice_pdf(order_id, user_id)
+                        # Enviar email con datos ya procesados por servicios
+                        email_success, email_message = send_order_confirmation_email(
+                            user_obj.email, 
+                            user_obj.username, 
+                            order_id,
+                            float(order.total),
+                            order.created_at.strftime('%d/%m/%Y %H:%M') if order.created_at else 'N/A',
+                            order_items,
+                            invoice_pdf
+                        )
+                        if not email_success:
+                            print(f"⚠️ No se pudo enviar el email de confirmación: {email_message}")
+            
             flash(f"Comanda processada correctament! ID: {order_id}", "success")
             return redirect(url_for("order_confirmation", order_id=order_id))
             
@@ -493,6 +520,30 @@ def process_order():
             # Tot correcte: confirmar canvis i netejar el carretó
             conn.commit()
             cart_service.clear_cart(session)
+            
+            # Enviar email de confirmación con factura (usando servicios, siguiendo arquitectura de 3 capas)
+            if user and user.email:
+                # Obtener datos de la orden usando el servicio (no acceso directo a BD)
+                success_order, message_order, order = order_service.get_order_by_id(order_id)
+                if success_order and order:
+                    # Obtener items de la orden usando el servicio
+                    success_items, message_items, order_items = order_service.get_order_items_for_email(order_id)
+                    if success_items:
+                        # Generar factura PDF
+                        invoice_pdf = generate_invoice_pdf(order_id, user_id)
+                        # Enviar email con datos ya procesados por servicios
+                        email_success, email_message = send_order_confirmation_email(
+                            user.email, 
+                            user.username, 
+                            order_id,
+                            float(order.total),
+                            order.created_at.strftime('%d/%m/%Y %H:%M') if order.created_at else 'N/A',
+                            order_items,
+                            invoice_pdf
+                        )
+                        if not email_success:
+                            print(f"⚠️ No se pudo enviar el email de confirmación: {email_message}")
+            
             flash(f"Comanda processada correctament! ID: {order_id}", "success")
             return redirect(url_for("order_confirmation", order_id=order_id))
 

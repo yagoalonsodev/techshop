@@ -1,19 +1,27 @@
 :root {
-    --color-bg: #f4f4f4;
+    --color-bg: #f8f9fa;
     --color-surface: #ffffff;
-    --color-surface-alt: #f8f8f8;
-    --color-border: #e3e3e3;
-    --color-text-primary: #111111;
-    --color-text-secondary: #6f6f6f;
-    --color-muted: #b5b5b5;
-    --color-accent: #111111;
-    --color-accent-hover: #000000;
-    --color-success-bg: #eef1ef;
-    --color-success-text: #1c1c1c;
-    --color-error-bg: #f4eaea;
-    --color-error-text: #7f1d1d;
-    --shadow-sm: 0 12px 24px rgba(0, 0, 0, 0.06);
-    --shadow-hover: 0 18px 36px rgba(0, 0, 0, 0.12);
+    --color-surface-alt: #f1f3f5;
+    --color-border: #dee2e6;
+    --color-text-primary: #212529;
+    --color-text-secondary: #6c757d;
+    --color-muted: #adb5bd;
+    --color-accent: #0d6efd;
+    --color-accent-hover: #0b5ed7;
+    --color-success-bg: #d1e7dd;
+    --color-success-text: #0f5132;
+    --color-error-bg: #f8d7da;
+    --color-error-text: #842029;
+    --color-warning-bg: #fff3cd;
+    --color-warning-text: #664d03;
+    --color-info-bg: #cff4fc;
+    --color-info-text: #055160;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
+    --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.12);
+    --border-radius: 12px;
+    --border-radius-sm: 8px;
+    --border-radius-lg: 16px;
     font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
@@ -159,14 +167,13 @@ nav a:focus-visible::after {
     width: 36px;
     height: 36px;
     filter: brightness(0) invert(1);
-    transition: transform 0.3s ease, filter 0.3s ease;
+    transition: transform 0.3s ease;
     pointer-events: none;
 }
 
 .logout-link:hover img,
 .logout-link:focus-visible img {
     transform: scale(1.1);
-    filter: brightness(1) invert(0) drop-shadow(0 0 8px rgba(255, 200, 0, 0.8)) drop-shadow(0 0 12px rgba(255, 100, 0, 0.6));
 }
 
 /* Selector de idioma */
@@ -632,17 +639,17 @@ main {
 }
 
 .btn {
-    padding: 0.9rem 1.5rem;
+    padding: 0.9rem 1.75rem;
     border: none;
-    border-radius: 50px;
+    border-radius: var(--border-radius);
     cursor: pointer;
     font-size: 0.95rem;
     font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    letter-spacing: 0.05em;
     transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
     background-color: var(--color-accent);
-    color: #f9f9f9;
+    color: #ffffff;
+    box-shadow: var(--shadow-sm);
 }
 
 .btn:hover,
@@ -804,7 +811,7 @@ main {
 .form-textarea:focus {
     outline: none;
     border-color: var(--color-accent);
-    box-shadow: 0 0 0 4px rgba(17, 17, 17, 0.08);
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
 }
 
 .form-input:invalid {

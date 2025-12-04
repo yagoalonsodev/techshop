@@ -184,3 +184,38 @@ class OrderService:
                 return orders_with_items
         except sqlite3.Error as e:
             return []
+    
+    def get_order_items_for_email(self, order_id: int) -> Tuple[bool, str, list]:
+        """
+        Obtenir items d'una comanda amb informació del producte per enviar per email.
+        
+        Args:
+            order_id (int): ID de la comanda
+            
+        Returns:
+            Tuple[bool, str, list]: (èxit, missatge, llista d'items amb product_id, quantity, name, price)
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT oi.product_id, oi.quantity, p.name, p.price
+                    FROM OrderItem oi
+                    JOIN Product p ON oi.product_id = p.id
+                    WHERE oi.order_id = ?
+                    ORDER BY p.name
+                """, (order_id,))
+                items = cursor.fetchall()
+                
+                items_list = []
+                for item in items:
+                    items_list.append({
+                        'product_id': item[0],
+                        'quantity': item[1],
+                        'name': item[2],
+                        'price': Decimal(str(item[3]))
+                    })
+                
+                return True, "Items obtinguts correctament", items_list
+        except sqlite3.Error as e:
+            return False, f"Error accedint als items: {str(e)}", []
