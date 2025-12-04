@@ -256,6 +256,61 @@ class UserService:
         
         return None
     
+    def get_user_by_email(self, email: str) -> Optional[User]:
+        """
+        Obtenir un usuari per email amb totes les dades.
+        
+        Args:
+            email (str): Email de l'usuari
+            
+        Returns:
+            User o None: L'usuari si existeix, None altrament
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                try:
+                    cursor.execute(
+                        "SELECT id, username, email, address, role, account_type, dni, nif, created_at FROM User WHERE email = ?",
+                        (email.lower(),)
+                    )
+                    result = cursor.fetchone()
+                    if result and len(result) >= 9:
+                        return User(
+                            id=result[0],
+                            username=result[1],
+                            email=result[2] if result[2] else "",
+                            address=result[3] if result[3] else "",
+                            role=result[4] if result[4] else "common",
+                            account_type=result[5] if result[5] else "user",
+                            dni=result[6] if result[6] else "",
+                            nif=result[7] if result[7] else "",
+                            password_hash="",
+                            created_at=datetime.fromisoformat(result[8]) if result[8] else datetime.now()
+                        )
+                except sqlite3.OperationalError:
+                    # Sin DNI/NIF
+                    cursor.execute(
+                        "SELECT id, username, email, address, role, account_type, created_at FROM User WHERE email = ?",
+                        (email.lower(),)
+                    )
+                    result = cursor.fetchone()
+                    if result and len(result) >= 7:
+                        return User(
+                            id=result[0],
+                            username=result[1],
+                            email=result[2] if result[2] else "",
+                            address=result[3] if result[3] else "",
+                            role=result[4] if result[4] else "common",
+                            account_type=result[5] if result[5] else "user",
+                            password_hash="",
+                            created_at=datetime.fromisoformat(result[6]) if result[6] else datetime.now()
+                        )
+        except sqlite3.Error:
+            pass
+        
+        return None
+    
     def reset_password_by_dni_and_email(self, dni: str, email: str) -> Tuple[bool, str]:
         """
         Restablir contrasenya d'un usuari mitjançant el seu DNI i email, i enviar-la per email.

@@ -4,7 +4,6 @@ Login, registro, logout, OAuth de Google, recuperación de contraseña
 """
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-import sqlite3
 
 from services.user_service import UserService
 from utils.validators import validar_dni_nie
@@ -102,41 +101,31 @@ def google_callback():
             flash("No s'ha pogut obtenir l'email de Google", 'error')
             return redirect(url_for('auth.login'))
         
-        # Buscar si el usuario ya existe por email
-        conn = sqlite3.connect('techshop.db')
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT id, username, email, account_type, role, dni, address FROM User WHERE email = ?", (google_email.lower(),))
-        existing_user = cursor.fetchone()
+        # Buscar si el usuario ya existe por email usando el servicio (siguiendo las reglas)
+        existing_user = user_service.get_user_by_email(google_email)
         
         if existing_user:
             # Usuario existente: iniciar sesión
-            user_id, username, email, account_type, role, dni, address = existing_user
-            
             # Verificar que sea usuario común (no empresa)
-            if account_type == 'company':
+            if existing_user.account_type == 'company':
                 flash("Els comptes d'empresa no poden utilitzar l'inici de sessió amb Google", 'error')
-                conn.close()
                 return redirect(url_for('auth.login'))
             
-            session['user_id'] = user_id
+            session['user_id'] = existing_user.id
             
             # Verificar si faltan datos obligatorios
-            has_missing, missing_fields = user_service.check_missing_required_data(user_id)
+            has_missing, missing_fields = user_service.check_missing_required_data(existing_user.id)
             if has_missing:
                 flash("Falten dades obligatòries al teu perfil. Si us plau, completa les teves dades.", 'warning')
-                conn.close()
                 return redirect(url_for('profile.profile', section='edit'))
             
-            flash(f"Benvingut de nou, {username}!", 'success')
-            conn.close()
+            flash(f"Benvingut de nou, {existing_user.username}!", 'success')
             return redirect(url_for('main.show_products'))
         else:
             # Nuevo usuario: guardar datos de Google en la sesión y redirigir a completar datos
             session['google_email'] = google_email
             session['google_name'] = google_name
             session['google_picture'] = google_picture
-            conn.close()
             return redirect(url_for('auth.complete_google_profile'))
             
     except Exception as e:
