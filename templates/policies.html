@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('policies_title') }} - TechShop{% endblock %}
+
+{% block content %}
+<div class="policies-container">
+    <div class="policies-header">
+        <h1>{{ _('policies_title') }}</h1>
+        <p class="policies-intro">{{ _('policies_intro') }}</p>
+    </div>
+    
+    <div class="policies-content" id="policies-content">
+        <section class="policy-section">
+            <h2>1. Política de Privacitat</h2>
+            <h3>1.1. Recopilació d'Informació</h3>
+            <p>TechShop recopila informació personal quan crees un compte, realitzes una compra o interactues amb el nostre lloc web. Aquesta informació pot incloure:</p>
+            <ul>
+                <li>Nom d'usuari i informació de contacte</li>
+                <li>Adreça de correu electrònic</li>
+                <li>Adreça d'enviament</li>
+                <li>Informació de pagament (processada de forma segura)</li>
+                <li>Informació de compres i preferències</li>
+            </ul>
+            
+            <h3>1.2. Ús de la Informació</h3>
+            <p>Utilitzem la teva informació per:</p>
+            <ul>
+                <li>Processar i gestionar les teves comandes</li>
+                <li>Millorar els nostres serveis i experiència d'usuari</li>
+                <li>Enviar-te comunicacions relacionades amb el servei (si has acceptat rebre newsletter)</li>
+                <li>Cumplir amb obligacions legals</li>
+            </ul>
+            
+            <h3>1.3. Protecció de Dades</h3>
+            <p>TechShop implementa mesures de seguretat tècniques i organitzatives per protegir les teves dades personals contra accés no autoritzat, pèrdua o destrucció.</p>
+            
+            <h3>1.4. Compartició d'Informació</h3>
+            <p>No venem, lloguem ni compartim les teves dades personals amb tercers, excepte quan sigui necessari per complir amb la llei o processar les teves comandes a través de proveïdors de serveis de confiança.</p>
+        </section>
+        
+        <section class="policy-section">
+            <h2>2. Condicions d'Ús</h2>
+            <h3>2.1. Acceptació de les Condicions</h3>
+            <p>En utilitzar el lloc web de TechShop, acceptes complir amb aquestes condicions d'ús. Si no estàs d'acord, si us plau, no utilitzis el nostre servei.</p>
+            
+            <h3>2.2. Ús del Servei</h3>
+            <p>Et compromets a utilitzar el servei de manera legal i adequada. No pots:</p>
+            <ul>
+                <li>Utilitzar el servei per a finalitats il·legals</li>
+                <li>Intentar accedir a àrees restringides del sistema</li>
+                <li>Interferir amb el funcionament del servei</li>
+                <li>Utilitzar robots o scripts automatitzats sense autorització</li>
+            </ul>
+            
+            <h3>2.3. {{ _('product_col') }}s i Preus</h3>
+            <p>TechShop es reserva el dret de modificar preus, descripcions de productes i disponibilitat sense previ avís. Els preus mostrats són en euros i inclouen IVA quan sigui aplicable.</p>
+            
+            <h3>2.4. Limitació de Responsabilitat</h3>
+            <p>TechShop no es fa responsable de danys indirectes, incidents o pèrdues derivades de l'ús del servei, excepte quan la llei ho requereixi.</p>
+        </section>
+        
+        <section class="policy-section">
+            <h2>3. Gestió de Comptes</h2>
+            <h3>3.1. Creació de Compte</h3>
+            <p>Per crear un compte, has de proporcionar informació veritable i actualitzada. Ets responsable de mantenir la confidencialitat de les teves credencials d'accés.</p>
+            
+            <h3>3.2. Seguretat del Compte</h3>
+            <p>Has de notificar-nos immediatament si sospites que el teu compte ha estat compromès. TechShop no es fa responsable de l'ús no autoritzat del teu compte.</p>
+        </section>
+        
+        <section class="policy-section">
+            <h2>4. Comandes i Pagaments</h2>
+            <h3>4.1. Processament de Comandes</h3>
+            <p>Quan realitzes una comanda, acceptes comprar el producte al preu indicat. TechShop es reserva el dret de rebutjar o cancel·lar comandes en determinades circumstàncies.</p>
+            
+            <h3>4.2. Pagaments</h3>
+            <p>Els pagaments es processen de forma segura a través de proveïdors de confiança. Totes les transaccions estan xifrades per garantir la seguretat de les teves dades financeres.</p>
+        </section>
+        
+        <section class="policy-section">
+            <h2>5. Propietat Intel·lectual</h2>
+            <p>Tots els continguts del lloc web de TechShop, incloent-hi textos, imatges, logotips i dissenys, estan protegits per drets d'autor i altres lleis de propietat intel·lectual.</p>
+        </section>
+        
+        <section class="policy-section">
+            <h2>6. Modificacions</h2>
+            <p>TechShop es reserva el dret de modificar aquestes polítiques en qualsevol moment. Les modificacions entraràn en vigor quan es publiquin al lloc web. És la teva responsabilitat revisar periòdicament aquestes polítiques.</p>
+        </section>
+        
+        <section class="policy-section">
+            <h2>7. Contacte</h2>
+            <p>Si tens preguntes sobre aquestes polítiques, pots contactar-nos a través del formulari de contacte disponible al lloc web.</p>
+        </section>
+        
+        <div class="policies-footer" id="policies-footer">
+            <p class="scroll-indicator" id="scroll-indicator">Desplaça't fins al final per acceptar les polítiques</p>
+            <div class="policies-actions" id="policies-actions" style="display: none;">
+                <button type="button" class="btn btn-primary btn-large" id="accept-policies-btn" onclick="acceptPolicies()">
+                    Accepto les Polítiques
+                </button>
+                <a href="{{ url_for('register') }}" class="btn btn-secondary">
+                    Tornar al Registre
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Detectar cuando se ha llegado al final del scroll
+function checkScrollPosition() {
+    const content = document.getElementById('policies-content');
+    const footer = document.getElementById('policies-footer');
+    const actions = document.getElementById('policies-actions');
+    const indicator = document.getElementById('scroll-indicator');
+    
+    // Calcular si se ha llegado al final
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight;
+    
+    // Verificar si estamos cerca del final (con un margen de 50px)
+    if (scrollTop + windowHeight >= documentHeight - 50) {
+        // Mostrar botón de aceptar y ocultar indicador
+        if (actions) {
+            actions.style.display = 'block';
+        }
+        if (indicator) {
+            indicator.style.display = 'none';
+        }
+    } else {
+        // Ocultar botón si no se ha llegado al final
+        if (actions) {
+            actions.style.display = 'none';
+        }
+        if (indicator) {
+            indicator.style.display = 'block';
+        }
+    }
+}
+
+// Función para aceptar políticas y volver al registro
+function acceptPolicies() {
+    // Guardar en sessionStorage que se han aceptado
+    sessionStorage.setItem('policies_accepted', 'true');
+    // Cerrar la ventana si se abrió en nueva pestaña, o redirigir
+    if (window.opener) {
+        // Si se abrió en nueva ventana, enviar mensaje a la ventana padre y cerrar
+        try {
+            window.opener.postMessage('policies_accepted', '*');
+            const checkbox = window.opener.document.getElementById('accept_policies');
+            if (checkbox) {
+                checkbox.disabled = false;
+                checkbox.checked = true;
+            }
+        } catch (e) {
+            console.log('No se pudo comunicar con la ventana padre');
+        }
+        window.close();
+    } else {
+        // Si está en la misma ventana, redirigir según el return_to
+        var returnTo = "{{ return_to|default('register') }}";
+        if (returnTo === 'complete_google_profile') {
+            window.location.href = "{{ url_for('complete_google_profile') }}";
+        } else {
+            window.location.href = "{{ url_for('register') }}";
+        }
+    }
+}
+
+// Añadir event listeners
+window.addEventListener('scroll', checkScrollPosition);
+window.addEventListener('resize', checkScrollPosition);
+
+// Verificar posición inicial
+document.addEventListener('DOMContentLoaded', function() {
+    checkScrollPosition();
+});
+</script>
+{% endblock %}
+

@@ -46,6 +46,8 @@ def init_database():
             password_hash VARCHAR(60),
             email VARCHAR(100),
             address TEXT,
+            role VARCHAR(10) DEFAULT 'common' CHECK(role IN ('common', 'admin')),
+            account_type VARCHAR(10) DEFAULT 'user' CHECK(account_type IN ('user', 'company')),
             created_at DATETIME
         )
     """)
@@ -107,11 +109,19 @@ def init_database():
     password_hash = generate_password_hash("TechShop123", method='pbkdf2:sha256')
     for username, email, address in users:
         cursor.execute(
-            "INSERT INTO User (username, password_hash, email, address, created_at) VALUES (?, ?, ?, ?, datetime('now'))",
+            "INSERT INTO User (username, password_hash, email, address, role, account_type, created_at) VALUES (?, ?, ?, ?, 'common', 'user', datetime('now'))",
             (username, password_hash, email, address)
         )
         user_ids.append(cursor.lastrowid)
+    
+    # Crear un usuari admin de prova
+    admin_password_hash = generate_password_hash("Admin123", method='pbkdf2:sha256')
+    cursor.execute(
+        "INSERT INTO User (username, password_hash, email, address, role, account_type, created_at) VALUES (?, ?, ?, ?, 'admin', 'user', datetime('now'))",
+        ("admin", admin_password_hash, "admin@techshop.com", "Carrer Admin 1, Barcelona")
+    )
     print(f"✅ {len(user_ids)} usuaris creats amb compres de prova")
+    print("✅ 1 usuari administrador creat (username: admin, password: Admin123)")
 
     # Crear comandes i detalls de comanda per a cada usuari
     orders_definition = [

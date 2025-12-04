@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('page_profile') }} - TechShop{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <h2>{{ _('page_profile') }}</h2>
+    </div>
+    
+    <div class="profile-tabs">
+        <a href="{{ url_for('profile', section='view') }}" 
+           class="tab {% if section == 'view' %}active{% endif %}">
+            {{ _('view_data') }}
+        </a>
+        <a href="{{ url_for('profile', section='edit') }}" 
+           class="tab {% if section == 'edit' %}active{% endif %}">
+            {{ _('edit_data') }}
+        </a>
+        <a href="{{ url_for('profile', section='history') }}" 
+           class="tab {% if section == 'history' %}active{% endif %}">
+            {{ _('purchase_history') }}
+        </a>
+    </div>
+    
+    <div class="profile-content">
+        {% if section == 'view' %}
+            <!-- Secció: Veure Dades -->
+            <div class="profile-section">
+                <h3>{{ _('my_data') }}</h3>
+                <div class="profile-info">
+                    <div class="info-row">
+                        <span class="info-label">{{ _('label_username') }}</span>
+                        <span class="info-value">{{ user.username }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">{{ _('table_email') }}</span>
+                        <span class="info-value">{{ user.email or 'N/A' }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">{{ _('label_address') }}</span>
+                        <span class="info-value">{{ user.address or 'N/A' }}</span>
+                    </div>
+                    {% if user.account_type == 'company' %}
+                        <div class="info-row">
+                            <span class="info-label">{{ _('label_nif') }}</span>
+                            <span class="info-value">{{ user.nif or 'N/A' }}</span>
+                        </div>
+                    {% else %}
+                        <div class="info-row">
+                            <span class="info-label">{{ _('label_dni') }}</span>
+                            <span class="info-value">{{ user.dni or 'N/A' }}</span>
+                        </div>
+                    {% endif %}
+                    <div class="info-row">
+                        <span class="info-label">{{ _('table_account_type') }}</span>
+                        <span class="info-value">{% if user.account_type == 'company' %}{{ _('account_type_company') }}{% else %}{{ _('account_type_user') }}{% endif %}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">{{ _('table_register_date') }}</span>
+                        <span class="info-value">{{ user.created_at.strftime('%d/%m/%Y') if user.created_at else 'N/A' }}</span>
+                    </div>
+                </div>
+                <div class="profile-actions" style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--color-border);">
+                    <form method="POST" action="{{ url_for('delete_account') }}" onsubmit="return confirm('Estàs segur que vols eliminar el teu compte? Aquesta acció no es pot desfer i s\'eliminaran totes les teves dades i comandes.');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger">
+                            Eliminar Compte
+                        </button>
+                    </form>
+                </div>
+            </div>
+        
+        {% elif section == 'edit' %}
+            <!-- Secció: Editar Dades -->
+            <div class="profile-section">
+                <h3>{{ _('edit_data') }}</h3>
+                <form method="POST" action="{{ url_for('profile_edit') }}" class="profile-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="form-group">
+                        <label for="username">{{ _('label_username') }} *</label>
+                        <input type="text" id="username" name="username" 
+                               value="{{ user.username }}" required
+                               minlength="4" maxlength="20"
+                               pattern="[a-zA-Z0-9_]+"
+                               class="form-input">
+                        <small>{{ _('help_username') }}</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">{{ _('label_email') }} *</label>
+                        <input type="email" id="email" name="email" 
+                               value="{{ user.email }}" required
+                               class="form-input">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="address">{{ _('label_address') }} *</label>
+                        <textarea id="address" name="address" 
+                                  required rows="3" class="form-textarea">{{ user.address or '' }}</textarea>
+                    </div>
+                    
+                    <div class="form-group" id="dni-group" {% if user.account_type == 'company' %}style="display: none;"{% endif %}>
+                        <label for="dni">{{ _('label_dni') }} *</label>
+                        <input type="text" id="dni" name="dni" 
+                               value="{{ user.dni or '' }}" 
+                               {% if user.account_type != 'company' %}required{% endif %}
+                               pattern="^(\d{8}[A-Z]|[XYZ]\d{7}[A-Z])$"
+                               title="Format: 8 números + lletra (DNI) o X/Y/Z + 7 números + lletra (NIE)"
+                               class="form-input"
+                               onblur="validateDNI_NIE(this)">
+                        <small>{{ _('help_dni') }}</small>
+                    </div>
+                    
+                    <div class="form-group" id="nif-group" {% if user.account_type != 'company' %}style="display: none;"{% endif %}>
+                        <label for="nif">{{ _('label_nif') }} *</label>
+                        <input type="text" id="nif" name="nif" 
+                               value="{{ user.nif or '' }}" 
+                               {% if user.account_type == 'company' %}required{% endif %}
+                               pattern="^[ABCDEFGHJKLMNPQRSUVW]\d{7}[0-9A-J]$"
+                               title="{{ _('help_nif') }}"
+                               class="form-input"
+                               onblur="validateCIF(this)">
+                        <small>{{ _('help_nif') }}</small>
+                    </div>
+                    
+                    <input type="hidden" name="account_type" value="{{ user.account_type }}">
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">{{ _('save_changes') }}</button>
+                        <a href="{{ url_for('profile', section='view') }}" class="btn btn-secondary">{{ _('btn_cancel') }}</a>
+                    </div>
+                </form>
+            </div>
+        
+        {% elif section == 'history' %}
+            <!-- Secció: {{ _('purchase_history') }} -->
+            <div class="profile-section">
+                <h3>{{ _('purchase_history') }}</h3>
+                
+                {% if orders_with_items %}
+                    <div class="orders-list">
+                        {% for order, items in orders_with_items %}
+                            <div class="order-card">
+                                <div class="order-header">
+                                    <div>
+                                        <h4>{{ _('order') }} #{{ order.id }}</h4>
+                                        <p class="order-date">{{ order.created_at.strftime('%d/%m/%Y %H:%M') if order.created_at else 'N/A' }}</p>
+                                    </div>
+                                    <div class="order-actions">
+                                        <a href="{{ url_for('download_invoice', order_id=order.id) }}" 
+                                           class="btn btn-primary btn-small">
+                                            📄 {{ _('btn_download_invoice') }}
+                                        </a>
+                                    </div>
+                                </div>
+                                
+                                <div class="order-items">
+                                    <h5>{{ _('order_products') }}</h5>
+                                    <table class="order-items-table">
+                                        <thead>
+                                            <tr>
+                                                <th>{{ _('product_col') }}</th>
+                                                <th>{{ _('quantity_col') }}</th>
+                                                <th>{{ _('unit_price') }}</th>
+                                                <th>{{ _('total') }}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in items %}
+                                                <tr>
+                                                    <td>{{ item.product_name }}</td>
+                                                    <td>{{ item.quantity }}</td>
+                                                    <td>{{ "%.2f"|format(item.product_price) }} €</td>
+                                                    <td>{{ "%.2f"|format(item.product_price * item.quantity) }} €</td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <td colspan="3" class="total-label"><strong>{{ _('total_label') }}</strong></td>
+                                                <td class="total-value"><strong>{{ "%.2f"|format(order.total) }} €</strong></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="no-orders">
+                        <p>{{ _('no_purchases_yet') }}</p>
+                        <a href="{{ url_for('show_products') }}" class="btn btn-primary">{{ _('view_products') }}</a>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Traducciones para validación
+const translations = {
+    error_dni_invalid: {{ _('error_dni_invalid')|tojson }},
+    error_nif_invalid: {{ _('error_nif_invalid')|tojson }}
+};
+
+// Validar DNI/NIE en tiempo real
+function validateDNI_NIE(input) {
+    const value = input.value.trim();
+    if (value.length === 0) {
+        clearFieldError(input);
+        return;
+    }
+    
+    if (!validarDNI_NIE(value)) {
+        showFieldError(input, translations.error_dni_invalid);
+    } else {
+        clearFieldError(input);
+    }
+}
+
+// Validar CIF en tiempo real
+function validateCIF(input) {
+    const value = input.value.trim();
+    if (value.length === 0) {
+        clearFieldError(input);
+        return;
+    }
+    
+    if (!validarCIF_NIF(value)) {
+        showFieldError(input, translations.error_nif_invalid);
+    } else {
+        clearFieldError(input);
+    }
+}
+</script>
+{% endblock %}
+

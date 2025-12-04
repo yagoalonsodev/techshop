@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('admin_panel') }} - TechShop{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <h2>{{ _('admin_panel') }}</h2>
+    
+    <div class="admin-stats">
+        <div class="stat-card">
+            <h3>{{ _('admin_products') }}</h3>
+            <p class="stat-number">{{ total_products }}</p>
+            <a href="{{ url_for('admin_products') }}" class="btn btn-primary">{{ _('manage_orders') }}</a>
+        </div>
+        
+        <div class="stat-card">
+            <h3>{{ _('admin_users') }}</h3>
+            <p class="stat-number">{{ total_users }}</p>
+            <a href="{{ url_for('admin_users') }}" class="btn btn-primary">{{ _('manage_orders') }}</a>
+        </div>
+        
+        <div class="stat-card">
+            <h3>{{ _('admin_orders') }}</h3>
+            <p class="stat-number">{{ total_orders }}</p>
+            <a href="{{ url_for('admin_orders') }}" class="btn btn-primary">{{ _('manage_orders') }}</a>
+        </div>
+        
+        <div class="stat-card">
+            <h3>{{ _('total_revenue') }}</h3>
+            <p class="stat-number">{{ "%.2f"|format(total_revenue) }}€</p>
+        </div>
+    </div>
+    
+    <div class="admin-actions">
+        <a href="{{ url_for('show_products') }}" class="btn btn-secondary">{{ _('back_to_products') }}</a>
+    </div>
+</div>
+{% endblock %}
+

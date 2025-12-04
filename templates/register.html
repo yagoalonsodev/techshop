@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}Registrar-se - TechShop{% endblock %}
+{% block title %}{{ _('page_register') }} - TechShop{% endblock %}
 
 {% block content %}
 <div class="auth-container">
-    <h2>Crear Compte</h2>
+    <h2>{{ _('page_register') }}</h2>
     
     <form method="POST" action="{{ url_for('register') }}" id="register-form" class="auth-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         
         <div class="form-group">
-            <label for="username">Nom d'usuari:</label>
+            <label for="username">{{ _('label_username') }}</label>
             <input type="text" 
                    id="username" 
                    name="username" 
@@ -21,50 +21,235 @@
                    required
                    class="form-input"
                    autocomplete="username">
-            <small>Entre 4 i 20 caràcters (només lletres, números i guions baixos)</small>
+            <small>{{ _('help_username') }}</small>
         </div>
 
         <div class="form-group">
-            <label for="password">Contrasenya:</label>
+            <label for="password">{{ _('label_password') }}</label>
             <input type="password" 
                    id="password" 
                    name="password" 
                    minlength="8"
                    maxlength="100"
                    pattern="^(?=.*[A-Za-z])(?=.*\d).{8,}$"
-                   title="Mínim 8 caràcters, ha de contenir almenys una lletra i un número"
+                   title="{{ _('help_password') }}"
                    required
                    class="form-input"
                    autocomplete="new-password">
-            <small>Mínim 8 caràcters, amb almenys una lletra i un número</small>
+            <small>{{ _('help_password') }}</small>
         </div>
 
         <div class="form-group">
-            <label for="email">Correu electrònic:</label>
+            <label for="email">{{ _('label_email') }}</label>
             <input type="email" 
                    id="email" 
                    name="email" 
                    pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
-                   title="Introdueix una adreça de correu electrònic vàlida"
+                   title="{{ _('help_email') }}"
                    required
                    class="form-input"
                    placeholder="exemple@correu.com"
                    autocomplete="email">
-            <small>Adreça de correu vàlida</small>
+            <small>{{ _('help_email') }}</small>
+        </div>
+
+        <div class="form-group">
+            <label for="address">{{ _('label_address') }}</label>
+            <textarea id="address" 
+                      name="address" 
+                      required
+                      rows="3"
+                      class="form-input"
+                      placeholder="{{ _('help_address_placeholder') }}"></textarea>
+            <small>{{ _('help_address') }}</small>
+        </div>
+
+        <div class="form-group">
+            <label for="account_type">{{ _('label_account_type') }}</label>
+            <select id="account_type" name="account_type" required class="form-input" onchange="toggleIdField()">
+                <option value="user">{{ _('account_type_user') }}</option>
+                <option value="company">{{ _('account_type_company') }}</option>
+            </select>
+            <small>{{ _('select_account_type') }}</small>
+        </div>
+
+        <div class="form-group" id="dni-group">
+            <label for="dni">DNI/NIE *</label>
+            <input type="text" 
+                   id="dni" 
+                   name="dni" 
+                   pattern="^(\d{8}[A-Z]|[XYZ]\d{7}[A-Z])$"
+                   title="Format: 8 números + lletra (DNI) o X/Y/Z + 7 números + lletra (NIE)"
+                   class="form-input"
+                   placeholder="12345678A o X1234567A"
+                   required
+                   onblur="validateDNI_NIE(this)">
+            <small>DNI (8 números + lletra) o NIE (X/Y/Z + 7 números + lletra)</small>
+        </div>
+
+        <div class="form-group" id="nif-group" style="display: none;">
+            <label for="nif">NIF/CIF *</label>
+            <input type="text" 
+                   id="nif" 
+                   name="nif" 
+                   pattern="^[ABCDEFGHJKLMNPQRSUVW]\d{7}[0-9A-J]$"
+                   title="Format: lletra + 7 números + caràcter de control"
+                   class="form-input"
+                   placeholder="B12345678"
+                   onblur="validateCIF(this)">
+            <small>NIF/CIF de l'empresa (lletra + 7 números + caràcter de control)</small>
+        </div>
+
+        <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+                <input type="checkbox" 
+                       id="accept_policies" 
+                       name="accept_policies" 
+                       required
+                       disabled
+                       class="checkbox-input">
+                <span>{{ _('accept_policies') }} <a href="{{ url_for('show_policies') }}" target="_blank" id="policies-link">{{ _('policies_title') }}</a> *</span>
+            </label>
+            <small>{{ _('policies_required') }}</small>
+        </div>
+
+        <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+                <input type="checkbox" 
+                       id="accept_newsletter" 
+                       name="accept_newsletter" 
+                       class="checkbox-input">
+                <span>{{ _('accept_newsletter') }}</span>
+            </label>
+            <small>{{ _('newsletter_optional') }}</small>
         </div>
 
         <div class="form-actions">
             <button type="submit" class="btn btn-primary btn-large">
-                Crear Compte
+                {{ _('btn_register') }}
             </button>
             <a href="{{ url_for('login') }}" class="btn btn-secondary">
-                Ja tinc compte
+                {{ _('already_have_account') }}
             </a>
             <a href="{{ url_for('show_products') }}" class="btn btn-link">
-                Tornar a Productes
+                {{ _('back_to_products') }}
             </a>
         </div>
     </form>
+    
+    <div class="oauth-divider">
+        <span>o</span>
+    </div>
+    
+    <div class="oauth-buttons">
+        <a href="{{ url_for('google_login') }}" class="btn btn-google">
+            <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                <g fill="#000" fill-rule="evenodd">
+                    <path d="M9 3.48c1.69 0 2.83.73 3.48 1.34l2.54-2.48C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.96l2.91 2.26C4.6 5.05 6.62 3.48 9 3.48z" fill="#EA4335"/>
+                    <path d="M17.64 9.2c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.21 1.18-.84 2.18-1.79 2.86l2.84 2.2c2.02-1.86 3.18-4.6 3.18-7.56z" fill="#4285F4"/>
+                    <path d="M3.88 10.78A5.54 5.54 0 0 1 3.58 9c0-.62.11-1.22.29-1.78L.96 4.96A9.008 9.008 0 0 0 0 9c0 1.45.35 2.82.96 4.04l2.92-2.26z" fill="#FBBC05"/>
+                    <path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.84-2.2c-.76.53-1.78.9-3.12.9-2.38 0-4.4-1.57-5.12-3.74L.96 13.04C2.45 15.98 5.48 18 9 18z" fill="#34A853"/>
+                </g>
+            </svg>
+            {{ _('continue_with_google') }}
+        </a>
+    </div>
 </div>
+
+<script>
+// Traducciones para validación
+const translations = {
+    error_dni_invalid: {{ _('error_dni_invalid')|tojson }},
+    error_nif_invalid: {{ _('error_nif_invalid')|tojson }}
+};
+
+function toggleIdField() {
+    const accountType = document.getElementById('account_type').value;
+    const dniGroup = document.getElementById('dni-group');
+    const nifGroup = document.getElementById('nif-group');
+    const dniInput = document.getElementById('dni');
+    const nifInput = document.getElementById('nif');
+    
+    if (accountType === 'company') {
+        // Mostrar NIF, ocultar DNI
+        dniGroup.style.display = 'none';
+        nifGroup.style.display = 'block';
+        dniInput.removeAttribute('required');
+        dniInput.value = ''; // Limpiar valor
+        nifInput.setAttribute('required', 'required');
+    } else {
+        // Mostrar DNI, ocultar NIF
+        dniGroup.style.display = 'block';
+        nifGroup.style.display = 'none';
+        nifInput.removeAttribute('required');
+        nifInput.value = ''; // Limpiar valor
+        dniInput.setAttribute('required', 'required');
+    }
+}
+
+// Validar DNI/NIE en tiempo real
+function validateDNI_NIE(input) {
+    const value = input.value.trim();
+    if (value.length === 0) {
+        clearFieldError(input);
+        return;
+    }
+    
+    if (!validarDNI_NIE(value)) {
+        showFieldError(input, translations.error_dni_invalid);
+    } else {
+        clearFieldError(input);
+    }
+}
+
+// Validar CIF en tiempo real
+function validateCIF(input) {
+    const value = input.value.trim();
+    if (value.length === 0) {
+        clearFieldError(input);
+        return;
+    }
+    
+    if (!validarCIF_NIF(value)) {
+        showFieldError(input, translations.error_nif_invalid);
+    } else {
+        clearFieldError(input);
+    }
+}
+
+// Inicializar al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    toggleIdField();
+    
+    // Si se viene de la página de políticas, habilitar y marcar el checkbox
+    if (sessionStorage.getItem('policies_accepted') === 'true') {
+        const checkbox = document.getElementById('accept_policies');
+        if (checkbox) {
+            checkbox.disabled = false;
+            checkbox.checked = true;
+        }
+    }
+    
+    // Detectar cuando se abre la ventana de políticas
+    const policiesLink = document.getElementById('policies-link');
+    if (policiesLink) {
+        policiesLink.addEventListener('click', function() {
+            // Marcar que se ha abierto la página de políticas
+            sessionStorage.setItem('policies_opened', 'true');
+        });
+    }
+    
+    // Escuchar mensajes de la ventana de políticas
+    window.addEventListener('message', function(event) {
+        if (event.data === 'policies_accepted') {
+            const checkbox = document.getElementById('accept_policies');
+            if (checkbox) {
+                checkbox.disabled = false;
+                checkbox.checked = true;
+            }
+        }
+    });
+});
+</script>
 {% endblock %}
 

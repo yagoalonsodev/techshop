@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('admin_orders') }} - Admin - TechShop{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h2>{{ _('admin_orders') }}</h2>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">{{ _('back_to_dashboard') }}</a>
+    </div>
+    
+    {% if orders_data %}
+        <div class="orders-list">
+            {% for order, username, email, items in orders_data %}
+                <div class="order-card">
+                    <div class="order-header">
+                        <h3>{{ _('order') }} #{{ order.id }}</h3>
+                        <span class="order-date">{{ order.created_at.strftime('%d/%m/%Y %H:%M') if order.created_at else 'N/A' }}</span>
+                    </div>
+                    
+                    <div class="order-info">
+                        <p><strong>{{ _('table_username') }}:</strong> {{ username }} ({{ email }})</p>
+                        <p><strong>{{ _('total_label') }}</strong> {{ "%.2f"|format(order.total) }}€</p>
+                    </div>
+                    
+                    <div class="order-items">
+                        <h4>{{ _('order_products') }}</h4>
+                        <ul>
+                            {% for item in items %}
+                                <li>
+                                    {{ _('product_col') }} ID: {{ item.product_id }} - {{ _('quantity_col') }}: {{ item.quantity }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    
+                    <div class="order-actions">
+                        <form method="POST" action="{{ url_for('admin_delete_order', order_id=order.id) }}" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('{{ _('confirm_delete_order') }}');">{{ _('btn_delete') }}</button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="no-data">{{ _('no_products_available')|replace('productes', 'comandes') }}</p>
+    {% endif %}
+</div>
+{% endblock %}
+

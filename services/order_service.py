@@ -129,3 +129,58 @@ class OrderService:
                 
         except sqlite3.Error as e:
             return False, f"Error accedint a la comanda: {str(e)}", None
+    
+    def get_orders_by_user_id(self, user_id: int) -> list:
+        """
+        Obtenir totes les comandes d'un usuari específic.
+        
+        Args:
+            user_id (int): ID de l'usuari
+            
+        Returns:
+            list: Llista de tuples (Order, items) on items és una llista de OrderItem amb informació del producte
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                # Obtenir totes les comandes de l'usuari
+                cursor.execute(
+                    'SELECT id, total, created_at, user_id FROM "Order" WHERE user_id = ? ORDER BY created_at DESC',
+                    (user_id,)
+                )
+                orders_data = cursor.fetchall()
+                
+                orders_with_items = []
+                for row in orders_data:
+                    order = Order(
+                        id=row[0],
+                        total=Decimal(str(row[1])),
+                        created_at=datetime.fromisoformat(row[2]) if row[2] else datetime.now(),
+                        user_id=row[3]
+                    )
+                    
+                    # Obtenir items de la comanda amb informació del producte
+                    cursor.execute("""
+                        SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, p.name, p.price
+                        FROM OrderItem oi
+                        JOIN Product p ON oi.product_id = p.id
+                        WHERE oi.order_id = ?
+                    """, (order.id,))
+                    items_data = cursor.fetchall()
+                    
+                    items = []
+                    for item_row in items_data:
+                        items.append({
+                            'id': item_row[0],
+                            'order_id': item_row[1],
+                            'product_id': item_row[2],
+                            'quantity': item_row[3],
+                            'product_name': item_row[4],
+                            'product_price': Decimal(str(item_row[5]))
+                        })
+                    
+                    orders_with_items.append((order, items))
+                
+                return orders_with_items
+        except sqlite3.Error as e:
+            return []

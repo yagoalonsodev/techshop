@@ -18,22 +18,33 @@ except ImportError:
     # Si dotenv no està instal·lat, intentar carregar manualment el .env
     env_path = Path(__file__).parent / '.env'
     if env_path.exists():
-        with open(env_path, 'r') as f:
+        with open(env_path, 'r', encoding='utf-8') as f:
             for line in f:
                 line = line.strip()
                 if line and not line.startswith('#') and '=' in line:
                     key, value = line.split('=', 1)
-                    os.environ[key.strip()] = value.strip()
+                    key = key.strip()
+                    value = value.strip().strip('"').strip("'")
+                    if key and value:
+                        os.environ[key] = value
 
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file, make_response
 from flask_wtf import CSRFProtect
 from flask_wtf.csrf import generate_csrf
 from werkzeug.security import generate_password_hash, check_password_hash
+from authlib.integrations.flask_client import OAuth
 
 from models import Product, User
 from services.cart_service import CartService
 from services.order_service import OrderService
 from services.recommendation_service import RecommendationService
+from services.admin_service import AdminService
+from services.user_service import UserService
+from services.company_service import CompanyService
+from services.product_service import ProductService
+from utils.validators import validar_dni_nie, validar_cif_nif
+from utils.translations import get_translation, get_available_languages, get_language_name
+from functools import wraps
 
 
 app = Flask(__name__)
@@ -50,6 +61,52 @@ app.config["SECRET_KEY"] = secret_key
 # Protecció CSRF per totes les peticions POST
 csrf = CSRFProtect(app)
 
+# Configurar OAuth de Google
+oauth = OAuth(app)
+google = oauth.register(
+    name='google',
+    client_id=os.environ.get('GOOGLE_OAUTH_CLIENT_ID'),
+    client_secret=os.environ.get('GOOGLE_OAUTH_CLIENT_SECRET'),
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={
+        'scope': 'openid email profile'
+    }
+)
+
+
+def get_current_language():
+    """
+    Obtener el idioma actual de la sesión.
+    
+    Returns:
+        str: Código del idioma ('cat', 'esp', 'eng'), por defecto 'cat'
+    """
+    return session.get('language', 'cat')
+
+@app.context_processor
+def inject_language():
+    """
+    Inyectar funciones de traducción en todos los templates.
+    """
+    lang = get_current_language()
+    return {
+        '_': lambda key: get_translation(key, lang),
+        'current_language': lang,
+        'available_languages': get_available_languages(),
+        'get_language_name': get_language_name
+    }
+
+def flash_translated(key: str, category: str = 'info'):
+    """
+    Mostrar un mensaje flash traducido.
+    
+    Args:
+        key (str): Clave de traducción
+        category (str): Categoría del mensaje ('success', 'error', 'warning', 'info')
+    """
+    lang = get_current_language()
+    message = get_translation(key, lang)
+    flash(message, category)
 
 def get_current_user():
     """
@@ -62,25 +119,8 @@ def get_current_user():
     if not user_id:
         return None
     
-    try:
-        with sqlite3.connect('techshop.db') as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT id, username, email, address FROM User WHERE id = ?",
-                (user_id,)
-            )
-            result = cursor.fetchone()
-            if result:
-                return User(
-                    id=result[0],
-                    username=result[1],
-                    email=result[2] if len(result) > 2 else "",
-                    password_hash="",  # No retornem el hash
-                )
-    except sqlite3.Error:
-        pass
-    
-    return None
+    # Obtenir usuari mitjançant el servei (seguint les regles)
+    return user_service.get_user_by_id(user_id)
 
 
 @app.context_processor
@@ -93,6 +133,53 @@ def inject_csrf_token():
 cart_service = CartService()
 order_service = OrderService()
 recommendation_service = RecommendationService()
+admin_service = AdminService()
+user_service = UserService()
+product_service = ProductService()
+# company_service s'inicialitzarà després de crear l'app
+
+
+def require_admin(f):
+    """
+    Decorador per protegir rutes que requereixen permisos d'administrador.
+    
+    Args:
+        f: Funció a decorar
+        
+    Returns:
+        Funció decorada que verifica permisos d'admin
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user = get_current_user()
+        if not user or not user.is_admin():
+            flash("Accés denegat. Es requereixen permisos d'administrador.", 'error')
+            return redirect(url_for('show_products'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def require_company(f):
+    """
+    Decorador per protegir rutes que requereixen ser una empresa.
+    
+    Args:
+        f: Funció a decorar
+        
+    Returns:
+        Funció decorada que verifica que l'usuari és una empresa
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user = get_current_user()
+        if not user:
+            flash("Has d'iniciar sessió per accedir a aquesta pàgina.", 'error')
+            return redirect(url_for('login'))
+        if user.account_type != 'company':
+            flash("Accés denegat. Aquesta funcionalitat és només per empreses.", 'error')
+            return redirect(url_for('show_products'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
 
@@ -141,41 +228,49 @@ def show_products():
     if user_id:
         user_recommendations = recommendation_service.get_top_products_for_user(user_id=user_id, limit=3)
 
-    try:
-        with sqlite3.connect('techshop.db') as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT id, name, price, stock FROM Product")
-            products_data = cursor.fetchall()
+    # Obtenir productes mitjançant el servei (seguint les regles)
+    products = product_service.get_all_products()
+    
+    # Obtenir imatges per a cada producte
+    product_images: Dict[int, List[str]] = {}
+    for product in products:
+        product_images[product.id] = _get_product_images(product.id)
+    
+    return render_template(
+        'products.html',
+        products=products,
+        recommendations=recommendations,
+        user_recommendations=user_recommendations,
+        product_images=product_images
+    )
             
-            products = []
-            product_images: Dict[int, List[str]] = {}
-            for row in products_data:
-                product = Product(
-                    id=row[0],
-                    name=row[1],
-                    price=Decimal(str(row[2])),
-                    stock=row[3]
-                )
-                products.append(product)
-                product_images[product.id] = _get_product_images(product.id)
-            
-            return render_template(
-                'products.html',
-                products=products,
-                recommendations=recommendations,
-                user_recommendations=user_recommendations,
-                product_images=product_images
-            )
-            
-    except sqlite3.Error as e:
-        flash(f"Error carregant productes: {str(e)}", 'error')
-        return render_template(
-            'products.html',
-            products=[],
-            recommendations=recommendations,
-            user_recommendations=user_recommendations,
-            product_images={}
-        )
+
+@app.route('/product/<int:product_id>')
+def product_detail(product_id):
+    """
+    Ruta que mostra el detall d'un producte específic.
+    
+    Args:
+        product_id (int): ID del producte
+        
+    Returns:
+        str: Pàgina HTML amb el detall del producte
+    """
+    # Obtenir producte mitjançant el servei
+    product = product_service.get_product_by_id(product_id)
+    
+    if not product:
+        flash("Producte no trobat", 'error')
+        return redirect(url_for('show_products'))
+    
+    # Obtenir imatges del producte
+    product_images = _get_product_images(product_id)
+    
+    return render_template(
+        'product_detail.html',
+        product=product,
+        product_images=product_images
+    )
 
 
 @app.route('/add_to_cart', methods=['POST'])
@@ -186,6 +281,12 @@ def add_to_cart():
     Returns:
         str: Redirecció a la pàgina de productes
     """
+    # Verificar que no sigui una empresa (les empreses no poden comprar)
+    user = get_current_user()
+    if user and user.account_type == 'company':
+        flash("Les empreses no poden comprar productes. Aquesta funcionalitat és només per usuaris individuals.", 'error')
+        return redirect(url_for('show_products'))
+    
     product_id = request.form.get('product_id', type=int)
     quantity = request.form.get('quantity', type=int)
     
@@ -211,6 +312,12 @@ def remove_from_cart():
     Returns:
         str: Redirecció a la pàgina de checkout
     """
+    # Verificar que no sigui una empresa (les empreses no poden comprar)
+    user = get_current_user()
+    if user and user.account_type == 'company':
+        flash("Les empreses no poden comprar productes. Aquesta funcionalitat és només per usuaris individuals.", 'error')
+        return redirect(url_for('show_products'))
+    
     product_id = request.form.get('product_id', type=int)
     
     if not product_id:
@@ -235,33 +342,24 @@ def checkout():
     Returns:
         str: Pàgina HTML del checkout
     """
+    # Verificar que no sigui una empresa (les empreses no poden comprar)
+    user = get_current_user()
+    if user and user.account_type == 'company':
+        flash("Les empreses no poden comprar productes. Aquesta funcionalitat és només per usuaris individuals.", 'error')
+        return redirect(url_for('show_products'))
+    
     cart_contents = cart_service.get_cart_contents(session)
     cart_total = cart_service.get_cart_total(session)
     
-    # Obtenir informació dels productes del carretó
+    # Obtenir informació dels productes del carretó mitjançant el servei
+    products_with_quantities = product_service.get_products_by_ids(cart_contents)
+    
+    # Construir llista amb imatges
     cart_products = []
-    try:
-        with sqlite3.connect('techshop.db') as conn:
-            cursor = conn.cursor()
-            for product_id, quantity in cart_contents.items():
-                cursor.execute(
-                    "SELECT id, name, price FROM Product WHERE id = ?",
-                    (product_id,)
-                )
-                result = cursor.fetchone()
-                if result:
-                    product = Product(
-                        id=result[0],
-                        name=result[1],
-                        price=Decimal(str(result[2]))
-                    )
+    for product, quantity in products_with_quantities:
                     cart_products.append(
                         (product, quantity, _get_product_images(product.id))
                     )
-                    
-    except sqlite3.Error as e:
-        flash(f"Error carregant productes del carretó: {str(e)}", 'error')
-        cart_products = []
     
     return render_template('checkout.html', 
                          cart_products=cart_products, 
@@ -277,6 +375,12 @@ def process_order():
     Returns:
         str: Redirecció a la pàgina de confirmació
     """
+    # Verificar que no sigui una empresa (les empreses no poden comprar)
+    user = get_current_user()
+    if user and user.account_type == 'company':
+        flash("Les empreses no poden comprar productes. Aquesta funcionalitat és només per usuaris individuals.", 'error')
+        return redirect(url_for('show_products'))
+    
     checkout_type = request.form.get('checkout_type', 'guest')
     address = request.form.get('address', '').strip()
     
@@ -292,17 +396,12 @@ def process_order():
             flash("L'adreça d'enviament ha de tenir almenys 10 caràcters", 'error')
             return redirect(url_for('checkout'))
         
-        # Actualitzar adreça de l'usuari si cal
-        try:
-            with sqlite3.connect('techshop.db') as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    "UPDATE User SET address = ? WHERE id = ?",
-                    (address, user_id)
-                )
-                conn.commit()
-        except sqlite3.Error:
-            pass  # No és crític si falla l'actualització
+        # Actualitzar adreça de l'usuari si cal (mitjançant el servei)
+        user = user_service.get_user_by_id(user_id)
+        if user:
+            user_service.update_user_profile(user_id, user.username, user.email, address, 
+                                            user.dni if hasattr(user, 'dni') else "", 
+                                            user.nif if hasattr(user, 'nif') else "")
         
         # Crear la comanda
         conn = None
@@ -367,47 +466,20 @@ def process_order():
             flash("L'adreça d'enviament ha de tenir almenys 10 caràcters", 'error')
             return redirect(url_for('checkout'))
         
-        # Autenticació / registre d'usuari i creació de comanda en una única transacció
+        # Crear o obtenir usuari mitjançant el servei (seguint les regles)
+        success_user, user, message_user = user_service.create_or_get_user(username, password, email, address)
+        
+        if not success_user:
+            flash(message_user, "error")
+            return redirect(url_for("checkout"))
+
+        user_id = user.id
+        session["user_id"] = user_id
+
+        # Crear la comanda utilitzant el servei
         conn = None
         try:
             conn = sqlite3.connect('techshop.db')
-            cursor = conn.cursor()
-
-            # Comprovar si l'usuari ja existeix
-            cursor.execute(
-                "SELECT id, password_hash FROM User WHERE username = ?",
-                (username,),
-            )
-            existing_user = cursor.fetchone()
-
-            if existing_user:
-                user_id, stored_hash = existing_user
-
-                # Verificar la contrasenya de l'usuari existent
-                if not check_password_hash(stored_hash, password):
-                    conn.rollback()
-                    flash("Contrasenya incorrecta per a l'usuari indicat", "error")
-                    return redirect(url_for("checkout"))
-
-                # Opcional: actualitzar dades de contacte
-                cursor.execute(
-                    "UPDATE User SET email = ?, address = ? WHERE id = ?",
-                    (email, address, user_id),
-                )
-            else:
-                # Registrar un nou usuari amb contrasenya hashejada
-                password_hash = generate_password_hash(password, method="pbkdf2:sha256")
-                cursor.execute(
-                    "INSERT INTO User (username, password_hash, email, address, created_at) "
-                    "VALUES (?, ?, ?, ?, datetime('now'))",
-                    (username, password_hash, email, address),
-                )
-                user_id = cursor.lastrowid
-
-            # Desa l'usuari a la sessió un cop validat / creat
-            session["user_id"] = user_id
-
-            # Crear la comanda utilitzant el servei, dins de la mateixa transacció
             cart_contents = cart_service.get_cart_contents(session)
             success, message, order_id = order_service.create_order_in_transaction(
                 conn, cart_contents, user_id
@@ -470,33 +542,202 @@ def login():
             flash("El nom d'usuari i la contrasenya són obligatoris", 'error')
             return render_template('login.html')
         
-        try:
-            with sqlite3.connect('techshop.db') as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    "SELECT id, password_hash FROM User WHERE username = ?",
-                    (username,)
-                )
-                result = cursor.fetchone()
-                
-                if result:
-                    user_id, stored_hash = result
-                    if check_password_hash(stored_hash, password):
-                        session['user_id'] = user_id
-                        flash(f"Benvingut de nou, {username}!", 'success')
-                        # Redirigir a la pàgina d'origen o a productes
-                        next_page = request.args.get('next', url_for('show_products'))
-                        return redirect(next_page)
-                    else:
-                        flash("Contrasenya incorrecta", 'error')
-                else:
-                    flash("Nom d'usuari no trobat", 'error')
-        except sqlite3.Error as e:
-            flash(f"Error d'autenticació: {str(e)}", 'error')
+        # Autenticar mitjançant el servei (seguint les regles)
+        success, user, message = user_service.authenticate_user(username, password)
+        
+        if success and user:
+            session['user_id'] = user.id
+            
+            # Verificar si faltan datos obligatorios
+            has_missing, missing_fields = user_service.check_missing_required_data(user.id)
+            if has_missing:
+                flash("Falten dades obligatòries al teu perfil. Si us plau, completa les teves dades.", 'warning')
+                return redirect(url_for('profile', section='edit'))
+            
+            flash(f"Benvingut de nou, {username}!", 'success')
+            # Redirigir a la pàgina d'origen o a productes
+            next_page = request.args.get('next', url_for('show_products'))
+            return redirect(next_page)
+        else:
+            flash(message, 'error')
         
         return render_template('login.html')
     
     return render_template('login.html')
+
+
+@app.route('/auth/google')
+def google_login():
+    """
+    Iniciar el procés d'autenticació amb Google.
+    Redirigeix a Google per autenticar-se.
+    """
+    redirect_uri = url_for('google_callback', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+
+@app.route('/auth/google/callback')
+def google_callback():
+    """
+    Callback de Google OAuth.
+    Processa la resposta de Google i crea/inicia sessió de l'usuari.
+    """
+    try:
+        token = google.authorize_access_token()
+        
+        # Obtener información del usuario desde Google
+        resp = google.get('https://www.googleapis.com/oauth2/v2/userinfo', token=token)
+        user_info = resp.json()
+        
+        google_email = user_info.get('email')
+        google_name = user_info.get('name', '')
+        google_picture = user_info.get('picture', '')
+        
+        if not google_email:
+            flash("No s'ha pogut obtenir l'email de Google", 'error')
+            return redirect(url_for('login'))
+        
+        # Buscar si l'usuari ja existeix per email
+        conn = sqlite3.connect('techshop.db')
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT id, username, email, account_type, role, dni, address FROM User WHERE email = ?", (google_email.lower(),))
+        existing_user = cursor.fetchone()
+        
+        if existing_user:
+            # Usuari existent: iniciar sessió
+            user_id, username, email, account_type, role, dni, address = existing_user
+            
+            # Verificar que sigui usuari comú (no empresa)
+            if account_type == 'company':
+                flash("Els comptes d'empresa no poden utilitzar l'inici de sessió amb Google", 'error')
+                conn.close()
+                return redirect(url_for('login'))
+            
+            session['user_id'] = user_id
+            
+            # Verificar si faltan datos obligatorios
+            has_missing, missing_fields = user_service.check_missing_required_data(user_id)
+            if has_missing:
+                flash("Falten dades obligatòries al teu perfil. Si us plau, completa les teves dades.", 'warning')
+                conn.close()
+                return redirect(url_for('profile', section='edit'))
+            
+            flash(f"Benvingut de nou, {username}!", 'success')
+            conn.close()
+            return redirect(url_for('show_products'))
+        else:
+            # Nou usuari: guardar dades de Google a la sessió i redirigir a completar dades
+            session['google_email'] = google_email
+            session['google_name'] = google_name
+            session['google_picture'] = google_picture
+            conn.close()
+            return redirect(url_for('complete_google_profile'))
+            
+    except Exception as e:
+        flash(f"Error en l'autenticació amb Google: {str(e)}", 'error')
+        return redirect(url_for('login'))
+
+
+@app.route('/complete-google-profile', methods=['GET', 'POST'])
+def complete_google_profile():
+    """
+    Formulari per completar les dades faltants després de l'autenticació amb Google.
+    """
+    # Verificar que hi ha dades de Google a la sessió
+    google_email = session.get('google_email')
+    google_name = session.get('google_name', '')
+    
+    if not google_email:
+        flash("Sessió de Google no trobada. Si us plau, intenta iniciar sessió amb Google de nou.", 'error')
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        address = request.form.get('address', '').strip()
+        dni = request.form.get('dni', '').strip().upper()
+        accept_policies = request.form.get('accept_policies') == 'on'
+        
+        # Validacions
+        if not all([username, address]):
+            flash("El nom d'usuari i l'adreça són obligatoris", 'error')
+            return render_template('complete_google_profile.html', 
+                                 google_email=google_email, 
+                                 google_name=google_name)
+        
+        if not accept_policies:
+            flash("Has d'acceptar les polítiques de privacitat i condicions d'ús", 'error')
+            return render_template('complete_google_profile.html', 
+                                 google_email=google_email, 
+                                 google_name=google_name)
+        
+        # Validar nom d'usuari
+        if len(username) < 4 or len(username) > 20:
+            flash("El nom d'usuari ha de tenir entre 4 i 20 caràcters", 'error')
+            return render_template('complete_google_profile.html', 
+                                 google_email=google_email, 
+                                 google_name=google_name)
+        
+        # Validar DNI si s'ha proporcionat
+        if dni and not validar_dni_nie(dni):
+            flash("DNI/NIE no vàlid", 'error')
+            return render_template('complete_google_profile.html', 
+                                 google_email=google_email, 
+                                 google_name=google_name)
+        
+        # Crear usuari amb Google (account_type sempre 'user' per OAuth)
+        success, user, message = user_service.create_user_with_google(
+            username, google_email, address, dni
+        )
+        
+        if success and user:
+            # Netejar dades de Google de la sessió
+            session.pop('google_email', None)
+            session.pop('google_name', None)
+            session.pop('google_picture', None)
+            
+            # Iniciar sessió
+            session['user_id'] = user.id
+            flash(f"Compte creat correctament amb Google! Benvingut, {username}!", 'success')
+            return redirect(url_for('show_products'))
+        else:
+            flash(message, 'error')
+    
+    return render_template('complete_google_profile.html', 
+                         google_email=google_email, 
+                         google_name=google_name)
+
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """
+    Ruta per recuperar contrasenya mitjançant DNI i email.
+    
+    Returns:
+        str: Pàgina HTML de recuperació de contrasenya
+    """
+    if request.method == 'POST':
+        dni = request.form.get('dni', '').strip().upper()
+        email = request.form.get('email', '').strip().lower()
+        
+        if not dni:
+            flash("El DNI/NIE és obligatori", 'error')
+            return render_template('forgot_password.html')
+        
+        if not email:
+            flash("L'email és obligatori", 'error')
+            return render_template('forgot_password.html')
+        
+        # Restablir contrasenya mitjançant el servei
+        success, message = user_service.reset_password_by_dni_and_email(dni, email)
+        
+        if success:
+            flash(message, 'success')
+            return render_template('forgot_password.html', success=True, message=message)
+        else:
+            flash(message, 'error')
+    
+    return render_template('forgot_password.html')
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -511,10 +752,21 @@ def register():
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
         email = request.form.get('email', '').strip()
+        address = request.form.get('address', '').strip()
+        account_type = request.form.get('account_type', 'user').strip()
+        dni = request.form.get('dni', '').strip()
+        nif = request.form.get('nif', '').strip()
+        accept_policies = request.form.get('accept_policies') == 'on'
+        accept_newsletter = request.form.get('accept_newsletter') == 'on'
         
         # Validacions del servidor
-        if not all([username, password, email]):
+        if not all([username, password, email, address]):
             flash("Tots els camps són obligatoris", 'error')
+            return render_template('register.html')
+        
+        # Validar que s'acceptin les polítiques
+        if not accept_policies:
+            flash("Has d'acceptar les polítiques de privacitat i condicions d'ús per crear un compte", 'error')
             return render_template('register.html')
         
         # Validar nom d'usuari
@@ -536,38 +788,53 @@ def register():
             flash("Adreça de correu electrònic no vàlida", 'error')
             return render_template('register.html')
         
-        try:
-            with sqlite3.connect('techshop.db') as conn:
-                cursor = conn.cursor()
-                
-                # Comprovar si l'usuari ja existeix
-                cursor.execute("SELECT id FROM User WHERE username = ?", (username,))
-                if cursor.fetchone():
-                    flash("Aquest nom d'usuari ja està en ús", 'error')
-                    return render_template('register.html')
-                
-                # Registrar nou usuari
-                password_hash = generate_password_hash(password, method="pbkdf2:sha256")
-                cursor.execute(
-                    "INSERT INTO User (username, password_hash, email, created_at) "
-                    "VALUES (?, ?, ?, datetime('now'))",
-                    (username, password_hash, email)
-                )
-                user_id = cursor.lastrowid
-                conn.commit()
-                
-                # Iniciar sessió automàticament
-                session['user_id'] = user_id
-                flash(f"Compte creat correctament! Benvingut, {username}!", 'success')
-                return redirect(url_for('show_products'))
-                
-        except sqlite3.Error as e:
-            flash(f"Error creant el compte: {str(e)}", 'error')
+        # Crear usuari mitjançant el servei (seguint les regles)
+        success, user, message = user_service.create_user(
+            username, password, email, address, account_type, dni, nif
+        )
+        
+        if success and user:
+            # Iniciar sessió automàticament
+            session['user_id'] = user.id
+            flash(f"Compte creat correctament! Benvingut, {username}!", 'success')
+            return redirect(url_for('show_products'))
+        else:
+            flash(message, 'error')
         
         return render_template('register.html')
     
     return render_template('register.html')
 
+
+@app.route('/policies')
+def show_policies():
+    """
+    Ruta per mostrar les polítiques de privacitat i condicions d'ús.
+    
+    Returns:
+        str: Pàgina HTML amb les polítiques
+    """
+    return_to = request.args.get('return_to', 'register')
+    return render_template('policies.html', return_to=return_to)
+
+
+@app.route('/set_language/<lang>')
+def set_language(lang):
+    """
+    Cambiar el idioma de la aplicación.
+    
+    Args:
+        lang (str): Código del idioma ('cat', 'esp', 'eng')
+        
+    Returns:
+        redirect: Redirección a la página anterior o a productos
+    """
+    if lang in get_available_languages():
+        session['language'] = lang
+    
+    # Redirigir a la página anterior o a productos
+    next_page = request.referrer or url_for('show_products')
+    return redirect(next_page)
 
 @app.route('/logout')
 def logout():
@@ -589,6 +856,601 @@ def logout():
         flash("Sessió tancada", 'success')
     
     return redirect(url_for('show_products'))
+
+
+# ============================================================================
+# RUTES D'ADMINISTRACIÓ (requereixen permisos d'admin)
+# ============================================================================
+
+@app.route('/admin')
+@require_admin
+def admin_dashboard():
+    """
+    Dashboard d'administració.
+    
+    Returns:
+        str: Pàgina HTML del dashboard d'admin
+    """
+    # Obtenir estadístiques mitjançant el servei (seguint les regles)
+    total_products, total_users, total_orders, total_revenue = admin_service.get_dashboard_stats()
+    
+    return render_template('admin/dashboard.html',
+                         total_products=total_products,
+                         total_users=total_users,
+                         total_orders=total_orders,
+                         total_revenue=total_revenue)
+
+
+# ========== CRUD PRODUCTES ==========
+
+@app.route('/admin/products')
+@require_admin
+def admin_products():
+    """
+    Llista de productes per administrar.
+    
+    Returns:
+        str: Pàgina HTML amb llista de productes
+    """
+    products = admin_service.get_all_products()
+    return render_template('admin/products.html', products=products)
+
+
+@app.route('/admin/products/create', methods=['GET', 'POST'])
+@require_admin
+def admin_create_product():
+    """
+    Crear un nou producte.
+    
+    Returns:
+        str: Formulari de creació o redirecció després de crear
+    """
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        price_str = request.form.get('price', '').strip()
+        stock_str = request.form.get('stock', '').strip()
+        
+        try:
+            price = Decimal(price_str)
+            stock = int(stock_str)
+        except (ValueError, TypeError):
+            flash("El preu i el stock han de ser números vàlids", 'error')
+            return render_template('admin/product_form.html', product=None)
+        
+        success, message, product_id = admin_service.create_product(name, price, stock)
+        
+        if success:
+            flash(message, 'success')
+            return redirect(url_for('admin_products'))
+        else:
+            flash(message, 'error')
+            return render_template('admin/product_form.html', product=None)
+    
+    return render_template('admin/product_form.html', product=None)
+
+
+@app.route('/admin/products/<int:product_id>/edit', methods=['GET', 'POST'])
+@require_admin
+def admin_edit_product(product_id):
+    """
+    Editar un producte existent.
+    
+    Args:
+        product_id (int): ID del producte
+        
+    Returns:
+        str: Formulari d'edició o redirecció després d'actualitzar
+    """
+    product = admin_service.get_product_by_id(product_id)
+    if not product:
+        flash("Producte no trobat", 'error')
+        return redirect(url_for('admin_products'))
+    
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        price_str = request.form.get('price', '').strip()
+        stock_str = request.form.get('stock', '').strip()
+        
+        try:
+            price = Decimal(price_str)
+            stock = int(stock_str)
+        except (ValueError, TypeError):
+            flash("El preu i el stock han de ser números vàlids", 'error')
+            return render_template('admin/product_form.html', product=product)
+        
+        success, message = admin_service.update_product(product_id, name, price, stock)
+        
+        if success:
+            flash(message, 'success')
+            return redirect(url_for('admin_products'))
+        else:
+            flash(message, 'error')
+            return render_template('admin/product_form.html', product=product)
+    
+    return render_template('admin/product_form.html', product=product)
+
+
+@app.route('/admin/products/<int:product_id>/delete', methods=['POST'])
+@require_admin
+def admin_delete_product(product_id):
+    """
+    Eliminar un producte.
+    
+    Args:
+        product_id (int): ID del producte
+        
+    Returns:
+        str: Redirecció a la llista de productes
+    """
+    success, message = admin_service.delete_product(product_id)
+    
+    if success:
+        flash(message, 'success')
+    else:
+        flash(message, 'error')
+    
+    return redirect(url_for('admin_products'))
+
+
+# ========== CRUD USUARIS ==========
+
+@app.route('/admin/users')
+@require_admin
+def admin_users():
+    """
+    Llista d'usuaris per administrar.
+    
+    Returns:
+        str: Pàgina HTML amb llista d'usuaris
+    """
+    users = admin_service.get_all_users()
+    return render_template('admin/users.html', users=users, current_user=get_current_user())
+
+
+@app.route('/admin/users/create', methods=['GET', 'POST'])
+@require_admin
+def admin_create_user():
+    """
+    Crear un nou usuari amb contrasenya generada automàticament.
+    
+    Returns:
+        str: Formulari de creació o redirecció després de crear
+    """
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip()
+        address = request.form.get('address', '').strip()
+        role = request.form.get('role', 'common').strip()
+        account_type = request.form.get('account_type', 'user').strip()
+        dni = request.form.get('dni', '').strip()
+        nif = request.form.get('nif', '').strip()
+        
+        success, message, generated_password, user_id = admin_service.create_user(
+            username, email, address, role, account_type, dni, nif
+        )
+        
+        if success:
+            flash(f"{message}. Contrasenya generada: {generated_password}", 'success')
+            return redirect(url_for('admin_users'))
+        else:
+            flash(message, 'error')
+            return render_template('admin/user_create_form.html')
+    
+    return render_template('admin/user_create_form.html')
+
+
+@app.route('/admin/users/<int:user_id>/edit', methods=['GET', 'POST'])
+@require_admin
+def admin_edit_user(user_id):
+    """
+    Editar un usuari existent.
+    
+    Args:
+        user_id (int): ID de l'usuari
+        
+    Returns:
+        str: Formulari d'edició o redirecció després d'actualitzar
+    """
+    user = admin_service.get_user_by_id(user_id)
+    if not user:
+        flash("Usuari no trobat", 'error')
+        return redirect(url_for('admin_users'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip()
+        address = request.form.get('address', '').strip()
+        role = request.form.get('role', 'common').strip()
+        # account_type no es modifiable, mantenir el valor existent
+        account_type = user.account_type if user.account_type else 'user'
+        
+        success, message = admin_service.update_user(user_id, username, email, address, role, account_type)
+        
+        if success:
+            flash(message, 'success')
+            return redirect(url_for('admin_users'))
+        else:
+            flash(message, 'error')
+            return render_template('admin/user_form.html', user=user)
+    
+    return render_template('admin/user_form.html', user=user)
+
+
+@app.route('/admin/users/<int:user_id>/reset-password', methods=['POST'])
+@require_admin
+def admin_reset_user_password(user_id):
+    """
+    Restablir la contrasenya d'un usuari amb una nova contrasenya generada automàticament.
+    
+    Args:
+        user_id (int): ID de l'usuari
+        
+    Returns:
+        str: Redirecció a la llista d'usuaris
+    """
+    success, message, new_password = admin_service.reset_user_password(user_id)
+    
+    if success:
+        flash(f"{message}. Nova contrasenya: {new_password}", 'success')
+    else:
+        flash(message, 'error')
+    
+    return redirect(url_for('admin_users'))
+
+
+@app.route('/admin/users/<int:user_id>/delete', methods=['POST'])
+@require_admin
+def admin_delete_user(user_id):
+    """
+    Eliminar un usuari.
+    
+    Args:
+        user_id (int): ID de l'usuari
+        
+    Returns:
+        str: Redirecció a la llista d'usuaris
+    """
+    success, message = admin_service.delete_user(user_id)
+    
+    if success:
+        flash(message, 'success')
+    else:
+        flash(message, 'error')
+    
+    return redirect(url_for('admin_users'))
+
+
+# ========== CRUD ORDENES ==========
+
+@app.route('/admin/orders')
+@require_admin
+def admin_orders():
+    """
+    Llista de comandes per administrar.
+    
+    Returns:
+        str: Pàgina HTML amb llista de comandes
+    """
+    orders = admin_service.get_all_orders()
+    
+    # Obtenir informació dels usuaris i items per cada comanda
+    orders_data = []
+    for order in orders:
+        # Obtenir usuari mitjançant el servei (seguint les regles)
+        user = user_service.get_user_by_id(order.user_id)
+        username = user.username if user else "Usuari eliminat"
+        email = user.email if user else ""
+        
+        # Obtenir items
+        items = admin_service.get_order_items(order.id)
+        orders_data.append((order, username, email, items))
+    
+    return render_template('admin/orders.html', orders_data=orders_data)
+
+
+@app.route('/admin/orders/<int:order_id>/delete', methods=['POST'])
+@require_admin
+def admin_delete_order(order_id):
+    """
+    Eliminar una comanda.
+    
+    Args:
+        order_id (int): ID de la comanda
+        
+    Returns:
+        str: Redirecció a la llista de comandes
+    """
+    success, message = admin_service.delete_order(order_id)
+    
+    if success:
+        flash(message, 'success')
+    else:
+        flash(message, 'error')
+    
+    return redirect(url_for('admin_orders'))
+
+
+# ========== PERFIL D'USUARI ==========
+
+@app.route('/profile')
+def profile():
+    """
+    Pàgina de perfil de l'usuari amb seccions: veure dades, editar dades, historial de compres.
+    
+    Returns:
+        str: Pàgina HTML del perfil
+    """
+    user = get_current_user()
+    if not user:
+        flash("Has d'iniciar sessió per accedir al teu perfil", 'error')
+        return redirect(url_for('login'))
+    
+    # Obtenir usuari complet amb DNI/NIF
+    full_user = user_service.get_user_by_id(user.id)
+    if not full_user:
+        flash("Error carregant les dades del perfil", 'error')
+        return redirect(url_for('show_products'))
+    
+    # Obtenir historial de compres
+    orders_with_items = order_service.get_orders_by_user_id(user.id)
+    
+    section = request.args.get('section', 'view')  # view, edit, history
+    
+    return render_template('profile.html', 
+                         user=full_user, 
+                         orders_with_items=orders_with_items,
+                         section=section)
+
+
+@app.route('/profile/edit', methods=['GET', 'POST'])
+def profile_edit():
+    """
+    Editar el perfil de l'usuari.
+    
+    Returns:
+        str: Formulari d'edició o redirecció després d'actualitzar
+    """
+    user = get_current_user()
+    if not user:
+        flash("Has d'iniciar sessió per editar el teu perfil", 'error')
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip()
+        address = request.form.get('address', '').strip()
+        dni = request.form.get('dni', '').strip()
+        nif = request.form.get('nif', '').strip()
+        
+        success, message = user_service.update_user_profile(
+            user.id, username, email, address, dni, nif
+        )
+        
+        if success:
+            flash(message, 'success')
+            # Actualizar sesión
+            session['user_id'] = user.id
+            return redirect(url_for('profile', section='view'))
+        else:
+            flash(message, 'error')
+            full_user = user_service.get_user_by_id(user.id)
+            return render_template('profile.html', user=full_user, section='edit', orders_with_items=[])
+    
+    # GET: mostrar formulario
+    full_user = user_service.get_user_by_id(user.id)
+    if not full_user:
+        flash("Error carregant les dades del perfil", 'error')
+        return redirect(url_for('profile'))
+    
+    orders_with_items = order_service.get_orders_by_user_id(user.id)
+    return render_template('profile.html', user=full_user, section='edit', orders_with_items=orders_with_items)
+
+
+@app.route('/profile/delete', methods=['POST'])
+def delete_account():
+    """
+    Eliminar el compte de l'usuari.
+    
+    Returns:
+        str: Redirecció després d'eliminar el compte
+    """
+    user = get_current_user()
+    if not user:
+        flash("Has d'iniciar sessió per eliminar el teu compte", 'error')
+        return redirect(url_for('login'))
+    
+    # Confirmar eliminación (podría añadirse un campo de confirmación)
+    success, message = user_service.delete_user_account(user.id)
+    
+    if success:
+        # Cerrar sesión
+        session.clear()
+        flash("El teu compte ha estat eliminat correctament", 'success')
+        return redirect(url_for('show_products'))
+    else:
+        flash(message, 'error')
+        return redirect(url_for('profile'))
+
+
+@app.route('/profile/invoice/<int:order_id>')
+def download_invoice(order_id):
+    """
+    Generar i descarregar la factura d'una comanda en format PDF.
+    
+    Args:
+        order_id (int): ID de la comanda
+        
+    Returns:
+        Response: PDF de la factura
+    """
+    user = get_current_user()
+    if not user:
+        flash("Has d'iniciar sessió per descarregar la factura", 'error')
+        return redirect(url_for('login'))
+    
+    # Verificar que la comanda pertany a l'usuari
+    success, message, order = order_service.get_order_by_id(order_id)
+    if not success or order.user_id != user.id:
+        flash("Comanda no trobada o no tens permís per accedir-hi", 'error')
+        return redirect(url_for('profile', section='history'))
+    
+    # Generar PDF
+    from utils.invoice_generator import generate_invoice_pdf
+    
+    print(f"🔍 Intentando generar factura para orden {order_id}, usuario {user.id}")
+    pdf_data = generate_invoice_pdf(order_id, user.id)
+    if not pdf_data:
+        print(f" Error generant la factura {order_id}, 'error'")
+        flash("Error generant la factura. Revisa els logs del servidor per més detalls.", 'error')
+        return redirect(url_for('profile', section='history'))
+    
+    print(f"✅ PDF generado correctamente para orden {order_id}")
+    
+    # Crear respuesta con el PDF
+    response = make_response(pdf_data)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename=factura_{order_id}.pdf'
+    
+    return response
+
+
+# ========== GESTIÓ DE PRODUCTES PER EMPRESES ==========
+
+# Inicialitzar company_service després de crear l'app
+company_service = CompanyService(static_folder=app.static_folder)
+
+@app.route('/company/products')
+@require_company
+def company_products():
+    """
+    Llista de productes de l'empresa.
+    
+    Returns:
+        str: Pàgina HTML amb llista de productes de l'empresa
+    """
+    user = get_current_user()
+    products = company_service.get_company_products(user.id)
+    return render_template('company/products.html', products=products)
+
+
+@app.route('/company/products/create', methods=['GET', 'POST'])
+@require_company
+def company_create_product():
+    """
+    Crear un nou producte per l'empresa.
+    
+    Returns:
+        str: Formulari de creació o redirecció després de crear
+    """
+    user = get_current_user()
+    
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        price_str = request.form.get('price', '').strip()
+        stock_str = request.form.get('stock', '').strip()
+        
+        try:
+            price = Decimal(price_str)
+            stock = int(stock_str)
+        except (ValueError, TypeError):
+            flash("El preu i el stock han de ser números vàlids", 'error')
+            return render_template('company/product_form.html', product=None)
+        
+        # Crear producte
+        success, message, product_id = company_service.create_product(user.id, name, price, stock)
+        
+        if success:
+            # Guardar imatges si hi ha
+            files = request.files.getlist('images')
+            if files and any(f.filename for f in files):
+                img_success, img_message = company_service.save_product_images(product_id, files)
+                if not img_success:
+                    flash(f"Producte creat però error amb imatges: {img_message}", 'warning')
+                else:
+                    flash(f"{message}. {img_message}", 'success')
+            else:
+                flash(message, 'success')
+            return redirect(url_for('company_products'))
+        else:
+            flash(message, 'error')
+            return render_template('company/product_form.html', product=None)
+    
+    return render_template('company/product_form.html', product=None)
+
+
+@app.route('/company/products/<int:product_id>/edit', methods=['GET', 'POST'])
+@require_company
+def company_edit_product(product_id):
+    """
+    Editar un producte existent de l'empresa.
+    
+    Args:
+        product_id (int): ID del producte
+        
+    Returns:
+        str: Formulari d'edició o redirecció després d'actualitzar
+    """
+    user = get_current_user()
+    product = company_service.get_product_by_id(product_id, user.id)
+    
+    if not product:
+        flash("Producte no trobat o no tens permís per editar-lo", 'error')
+        return redirect(url_for('company_products'))
+    
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        price_str = request.form.get('price', '').strip()
+        stock_str = request.form.get('stock', '').strip()
+        
+        try:
+            price = Decimal(price_str)
+            stock = int(stock_str)
+        except (ValueError, TypeError):
+            flash("El preu i el stock han de ser números vàlids", 'error')
+            return render_template('company/product_form.html', product=product)
+        
+        success, message = company_service.update_product(product_id, user.id, name, price, stock)
+        
+        if success:
+            # Guardar noves imatges si hi ha
+            files = request.files.getlist('images')
+            if files and any(f.filename for f in files):
+                img_success, img_message = company_service.save_product_images(product_id, files)
+                if not img_success:
+                    flash(f"{message}. Error amb imatges: {img_message}", 'warning')
+                else:
+                    flash(f"{message}. {img_message}", 'success')
+            else:
+                flash(message, 'success')
+            return redirect(url_for('company_products'))
+        else:
+            flash(message, 'error')
+            return render_template('company/product_form.html', product=product)
+    
+    return render_template('company/product_form.html', product=product)
+
+
+@app.route('/company/products/<int:product_id>/delete', methods=['POST'])
+@require_company
+def company_delete_product(product_id):
+    """
+    Eliminar un producte de l'empresa (només si no té vendes).
+    
+    Args:
+        product_id (int): ID del producte
+        
+    Returns:
+        str: Redirecció a la llista de productes
+    """
+    user = get_current_user()
+    success, message = company_service.delete_product(product_id, user.id)
+    
+    if success:
+        flash(message, 'success')
+    else:
+        flash(message, 'error')
+    
+    return redirect(url_for('company_products'))
 
 
 if __name__ == '__main__':

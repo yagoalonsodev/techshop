@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('create_user') }} - Admin - TechShop{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h2>{{ _('create_user') }}</h2>
+        <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">{{ _('back_to_products') }}</a>
+    </div>
+    
+    <div class="admin-form-container">
+        <form method="POST" class="admin-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div class="form-group">
+                <label for="username">{{ _('label_username') }} *</label>
+                <input type="text" id="username" name="username" required 
+                       minlength="4" maxlength="20" 
+                       pattern="[a-zA-Z0-9_]+"
+                       title="{{ _('help_username') }}">
+                <small>{{ _('help_username') }}</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">{{ _('label_email') }} *</label>
+                <input type="email" id="email" name="email" required>
+                <small>{{ _('help_email') }}</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="address">{{ _('label_address') }} *</label>
+                <textarea id="address" name="address" rows="3" required></textarea>
+                <small>{{ _('help_address') }}</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="role">{{ _('table_role') }} *</label>
+                <select id="role" name="role" required>
+                    <option value="common" selected>{{ _('role_common') }}</option>
+                    <option value="admin">{{ _('role_admin') }}</option>
+                </select>
+                <small>{{ _('table_role') }} {{ _('table_username') }}</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="account_type">{{ _('label_account_type') }} *</label>
+                <select id="account_type" name="account_type" required onchange="toggleIdField()">
+                    <option value="user" selected>{{ _('account_type_user') }}</option>
+                    <option value="company">{{ _('account_type_company') }}</option>
+                </select>
+                <small>{{ _('select_account_type') }}</small>
+            </div>
+            
+            <div class="form-group" id="dni-group">
+                <label for="dni">{{ _('label_dni') }} *</label>
+                <input type="text" id="dni" name="dni" 
+                       pattern="^(\d{8}[A-Z]|[XYZ]\d{7}[A-Z])$"
+                       title="{{ _('help_dni') }}"
+                       class="form-input"
+                       placeholder="12345678A o X1234567A"
+                       required
+                       onblur="validateDNI_NIE(this)">
+                <small>{{ _('help_dni') }}</small>
+            </div>
+            
+            <div class="form-group" id="nif-group" style="display: none;">
+                <label for="nif">{{ _('label_nif') }} *</label>
+                <input type="text" id="nif" name="nif" 
+                       pattern="^[ABCDEFGHJKLMNPQRSUVW]\d{7}[0-9A-J]$"
+                       title="{{ _('help_nif') }}"
+                       class="form-input"
+                       placeholder="B12345678"
+                       onblur="validateCIF(this)">
+                <small>{{ _('help_nif') }}</small>
+            </div>
+            
+            <div class="form-group">
+                <div class="info-box">
+                    <strong>ℹ️ {{ _('info') }}:</strong> {{ _('password_auto_generated') }}
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">{{ _('create_user') }}</button>
+                <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">{{ _('btn_cancel') }}</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Traducciones para validación
+const translations = {
+    error_dni_invalid: {{ _('error_dni_invalid')|tojson }},
+    error_nif_invalid: {{ _('error_nif_invalid')|tojson }}
+};
+
+function toggleIdField() {
+    const accountType = document.getElementById('account_type').value;
+    const dniGroup = document.getElementById('dni-group');
+    const nifGroup = document.getElementById('nif-group');
+    const dniInput = document.getElementById('dni');
+    const nifInput = document.getElementById('nif');
+    
+    if (accountType === 'company') {
+        // Mostrar NIF, ocultar DNI
+        dniGroup.style.display = 'none';
+        nifGroup.style.display = 'block';
+        dniInput.removeAttribute('required');
+        dniInput.value = ''; // Limpiar valor
+        nifInput.setAttribute('required', 'required');
+    } else {
+        // Mostrar DNI, ocultar NIF
+        dniGroup.style.display = 'block';
+        nifGroup.style.display = 'none';
+        nifInput.removeAttribute('required');
+        nifInput.value = ''; // Limpiar valor
+        dniInput.setAttribute('required', 'required');
+    }
+}
+
+// Validar DNI/NIE en tiempo real
+function validateDNI_NIE(input) {
+    const value = input.value.trim();
+    if (value.length === 0) {
+        clearFieldError(input);
+        return;
+    }
+    
+    if (!validarDNI_NIE(value)) {
+        showFieldError(input, translations.error_dni_invalid);
+    } else {
+        clearFieldError(input);
+    }
+}
+
+// Validar CIF en tiempo real
+function validateCIF(input) {
+    const value = input.value.trim();
+    if (value.length === 0) {
+        clearFieldError(input);
+        return;
+    }
+    
+    if (!validarCIF_NIF(value)) {
+        showFieldError(input, translations.error_nif_invalid);
+    } else {
+        clearFieldError(input);
+    }
+}
+
+// Inicializar al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    toggleIdField();
+});
+</script>
+{% endblock %}
+

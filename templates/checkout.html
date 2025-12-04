@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}Checkout - TechShop{% endblock %}
+{% block title %}{{ _('page_checkout') }} - TechShop{% endblock %}
 
 {% block content %}
 <div class="checkout-container">
-    <h2>Finalitzar Compra</h2>
+    <h2>{{ _('page_checkout') }}</h2>
     
     {% if cart_products %}
         <div class="cart-summary">
-            <h3>Resum del Carretó</h3>
+            <h3>{{ _('cart_summary') }}</h3>
             <div class="cart-items">
                 {% for product, quantity, images in cart_products %}
                     <div class="cart-item">
@@ -16,7 +16,7 @@
                             {% if images %}
                                 <img src="{{ images[0] }}" alt="Imatge de {{ product.name }}" loading="lazy">
                             {% else %}
-                                <div class="cart-item-placeholder">Sense imatge</div>
+                                <div class="cart-item-placeholder">{{ _('no_image') }}</div>
                             {% endif %}
                         </div>
                         <div class="cart-item-details">
@@ -28,19 +28,19 @@
                         <form method="POST" action="{{ url_for('remove_from_cart') }}" class="remove-form">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="product_id" value="{{ product.id }}">
-                            <button type="submit" class="btn btn-danger btn-small">Eliminar</button>
+                            <button type="submit" class="btn btn-danger btn-small">{{ _('remove') }}</button>
                         </form>
                     </div>
                 {% endfor %}
             </div>
             
             <div class="cart-total">
-                <strong>Total: {{ "%.2f"|format(cart_total) }}€</strong>
+                <strong>{{ _('total') }}: {{ "%.2f"|format(cart_total) }}€</strong>
             </div>
         </div>
 
         <div class="checkout-form">
-            <h3>Dades de l'Usuari</h3>
+            <h3>{{ _('user_data') }}</h3>
             
             {% if current_user %}
                 {# Usuari autenticat: només demanar adreça #}
@@ -49,56 +49,56 @@
                     <input type="hidden" name="checkout_type" value="authenticated">
                     
                     <div class="user-info-summary">
-                        <p><strong>Comprant com:</strong> {{ current_user.username }}</p>
-                        <p><strong>Correu:</strong> {{ current_user.email }}</p>
+                        <p><strong>{{ _('buying_as') }}:</strong> {{ current_user.username }}</p>
+                        <p><strong>{{ _('email_label') }}</strong> {{ current_user.email }}</p>
                     </div>
 
                     <div class="form-group">
-                        <label for="address">Adreça d'enviament:</label>
+                        <label for="address">{{ _('label_address') }}</label>
                         <textarea id="address" 
                                   name="address" 
                                   minlength="10"
                                   maxlength="500"
-                                  title="Introdueix la teva adreça completa d'enviament (mínim 10 caràcters)"
+                                  title="{{ _('help_address') }}"
                                   required
                                   class="form-textarea"
                                   rows="3"
-                                  placeholder="Carrer, número, pis, codi postal, ciutat..."></textarea>
-                        <small>Adreça completa per l'enviament (mínim 10 caràcters)</small>
+                                  placeholder="{{ _('help_address_placeholder') }}"></textarea>
+                        <small>{{ _('help_address') }}</small>
                     </div>
 
                     <div class="form-actions">
                         <button type="submit" class="btn btn-success btn-large">
-                            Confirmar Compra
+                            {{ _('btn_confirm') }} {{ _('checkout') }}
                         </button>
                         <a href="{{ url_for('show_products') }}" class="btn btn-secondary">
-                            Continuar Comprant
+                            {{ _('continue_shopping') }}
                         </a>
                     </div>
                 </form>
             {% else %}
                 {# Usuari no autenticat: preguntar com vol comprar #}
                 <div id="checkout-choice" class="checkout-choice">
-                    <h4>Com vols continuar?</h4>
+                    <h4>{{ _('prefer_guest') }}</h4>
                     <div class="choice-buttons">
                         <button type="button" id="btn-login" class="btn btn-primary btn-large">
-                            Iniciar Sessió
+                            {{ _('btn_login') }}
                         </button>
                         <button type="button" id="btn-guest" class="btn btn-secondary btn-large">
-                            Comprar com a Invitat
+                            {{ _('checkout_as_guest') }}
                         </button>
                     </div>
                 </div>
 
                 {# Formulari d'inici de sessió (ocult inicialment) #}
                 <div id="login-section" class="checkout-section" style="display: none;">
-                    <h4>Iniciar Sessió</h4>
+                    <h4>{{ _('page_login') }}</h4>
                     <form method="POST" action="{{ url_for('login') }}" id="checkout-login-form">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="next" value="{{ url_for('checkout') }}">
                         
                         <div class="form-group">
-                            <label for="login-username">Nom d'usuari:</label>
+                            <label for="login-username">{{ _('label_username') }}</label>
                             <input type="text" 
                                    id="login-username" 
                                    name="username" 
@@ -111,7 +111,7 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="login-password">Contrasenya:</label>
+                            <label for="login-password">{{ _('label_password') }}</label>
                             <input type="password" 
                                    id="login-password" 
                                    name="password" 
@@ -123,13 +123,13 @@
 
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary">
-                                Iniciar Sessió
+                                {{ _('btn_login') }}
                             </button>
                             <a href="{{ url_for('register') }}" class="btn btn-link">
-                                Crear Compte
+                                {{ _('btn_register') }}
                             </a>
                             <button type="button" id="btn-back-from-login" class="btn btn-secondary">
-                                Tornar
+                                {{ _('btn_back') }}
                             </button>
                         </div>
                     </form>
@@ -137,76 +137,76 @@
 
                 {# Formulari d'invitat (ocult inicialment) #}
                 <div id="guest-section" class="checkout-section" style="display: none;">
-                    <h4>Comprar com a Invitat</h4>
-                    <form method="POST" action="{{ url_for('process_order') }}" id="checkout-form">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <h4>{{ _('checkout_as_guest') }}</h4>
+            <form method="POST" action="{{ url_for('process_order') }}" id="checkout-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="checkout_type" value="guest">
                         
-                        <div class="form-group">
-                            <label for="username">Nom d'usuari:</label>
-                            <input type="text" 
-                                   id="username" 
-                                   name="username" 
-                                   minlength="4" 
-                                   maxlength="20" 
-                                   pattern="[a-zA-Z0-9_]+"
-                                   title="Entre 4 i 20 caràcters. Només lletres, números i guions baixos (_)"
-                                   required
+                <div class="form-group">
+                            <label for="username">{{ _('label_username') }}</label>
+                    <input type="text" 
+                           id="username" 
+                           name="username" 
+                           minlength="4" 
+                           maxlength="20" 
+                           pattern="[a-zA-Z0-9_]+"
+                                   title="{{ _('help_username') }}"
+                           required
                                    class="form-input"
                                    autocomplete="username">
-                            <small>Entre 4 i 20 caràcters (només lletres, números i guions baixos)</small>
-                        </div>
+                            <small>{{ _('help_username') }}</small>
+                </div>
 
-                        <div class="form-group">
-                            <label for="password">Contrasenya:</label>
-                            <input type="password" 
-                                   id="password" 
-                                   name="password" 
-                                   minlength="8"
-                                   maxlength="100"
-                                   pattern="^(?=.*[A-Za-z])(?=.*\d).{8,}$"
-                                   title="Mínim 8 caràcters, ha de contenir almenys una lletra i un número"
-                                   required
+                <div class="form-group">
+                            <label for="password">{{ _('label_password') }}</label>
+                    <input type="password" 
+                           id="password" 
+                           name="password" 
+                           minlength="8"
+                           maxlength="100"
+                           pattern="^(?=.*[A-Za-z])(?=.*\d).{8,}$"
+                                   title="{{ _('help_password') }}"
+                           required
                                    class="form-input"
                                    autocomplete="new-password">
-                            <small>Mínim 8 caràcters, amb almenys una lletra i un número</small>
-                        </div>
+                            <small>{{ _('help_password') }}</small>
+                </div>
 
-                        <div class="form-group">
-                            <label for="email">Correu electrònic:</label>
-                            <input type="email" 
-                                   id="email" 
-                                   name="email" 
-                                   pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
-                                   title="Introdueix una adreça de correu electrònic vàlida"
-                                   required
-                                   class="form-input"
+                <div class="form-group">
+                            <label for="email">{{ _('label_email') }}</label>
+                    <input type="email" 
+                           id="email" 
+                           name="email" 
+                           pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
+                                   title="{{ _('help_email') }}"
+                           required
+                           class="form-input"
                                    placeholder="exemple@correu.com"
                                    autocomplete="email">
-                            <small>Adreça de correu vàlida</small>
-                        </div>
+                            <small>{{ _('help_email') }}</small>
+                </div>
 
-                        <div class="form-group">
-                            <label for="address">Adreça d'enviament:</label>
-                            <textarea id="address" 
-                                      name="address" 
-                                      minlength="10"
-                                      maxlength="500"
-                                      title="Introdueix la teva adreça completa d'enviament (mínim 10 caràcters)"
-                                      required
-                                      class="form-textarea"
-                                      rows="3"
-                                      placeholder="Carrer, número, pis, codi postal, ciutat..."></textarea>
-                            <small>Adreça completa per l'enviament (mínim 10 caràcters)</small>
-                        </div>
+                <div class="form-group">
+                            <label for="address">{{ _('label_address') }}</label>
+                    <textarea id="address" 
+                              name="address" 
+                              minlength="10"
+                              maxlength="500"
+                                      title="{{ _('help_address') }}"
+                              required
+                              class="form-textarea"
+                              rows="3"
+                                      placeholder="{{ _('help_address_placeholder') }}"></textarea>
+                            <small>{{ _('help_address') }}</small>
+                </div>
 
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-success btn-large">
-                                Confirmar Compra
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-success btn-large">
+                                {{ _('btn_confirm') }} {{ _('checkout') }}
                             </button>
                             <button type="button" id="btn-back-from-guest" class="btn btn-secondary">
-                                Tornar
-                            </button>
+                                {{ _('btn_back') }}
+                    </button>
                         </div>
                     </form>
                 </div>
@@ -214,10 +214,10 @@
         </div>
     {% else %}
         <div class="empty-cart">
-            <h3>El teu carretó està buit</h3>
-            <p>Afegix productes al carretó per continuar amb la compra.</p>
+            <h3>{{ _('cart_empty') }}</h3>
+            <p>{{ _('add_products_to_cart') }}</p>
             <a href="{{ url_for('show_products') }}" class="btn btn-primary">
-                Veure Productes
+                {{ _('view_products') }}
             </a>
         </div>
     {% endif %}

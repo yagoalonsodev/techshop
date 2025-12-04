@@ -6,7 +6,9 @@ CREATE TABLE Product (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name VARCHAR(100),
     price DECIMAL(10,2),
-    stock INTEGER
+    stock INTEGER,
+    company_id INTEGER,
+    FOREIGN KEY (company_id) REFERENCES User(id)
 );
 
 -- Tabla User: conté la informació de l'usuari que fa la compra
@@ -16,6 +18,10 @@ CREATE TABLE User (
     password_hash VARCHAR(60),
     email VARCHAR(100),
     address TEXT,
+    role VARCHAR(10) DEFAULT 'common' CHECK(role IN ('common', 'admin')),
+    account_type VARCHAR(10) DEFAULT 'user' CHECK(account_type IN ('user', 'company')),
+    dni VARCHAR(20),  -- DNI per usuaris individuals
+    nif VARCHAR(20),  -- NIF per empreses
     created_at DATETIME
 );
 

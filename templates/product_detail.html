@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - TechShop{% endblock %}
+
+{% block content %}
+<div class="product-detail-container">
+    <div class="product-detail-header">
+        <a href="{{ url_for('show_products') }}" class="back-link">{{ _('back_to_products') }}</a>
+        <h1>{{ product.name }}</h1>
+    </div>
+    
+    <div class="product-detail-content">
+        <div class="product-detail-images">
+            {% if product_images %}
+                <div class="product-detail-main-image">
+                    <img src="{{ product_images[0] }}" 
+                         alt="Imatge principal de {{ product.name }}" 
+                         id="main-product-image"
+                         loading="lazy">
+                </div>
+                {% if product_images|length > 1 %}
+                    <div class="product-detail-thumbnails">
+                        {% for image in product_images %}
+                            <img src="{{ image }}" 
+                                 alt="Imatge {{ loop.index }} de {{ product.name }}"
+                                 class="product-detail-thumb{% if loop.first %} is-active{% endif %}"
+                                 data-image="{{ image }}"
+                                 loading="lazy">
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="product-detail-placeholder">
+                    <span>{{ _('image_not_available') }}</span>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="product-detail-info">
+            <div class="product-detail-price">
+                <span class="price-label">{{ _('price_label') }}</span>
+                <span class="price-value">{{ "%.2f"|format(product.price) }}€</span>
+            </div>
+            
+            <div class="product-detail-stock">
+                <span class="stock-label">{{ _('stock_available') }}</span>
+                <span class="stock-value{% if product.stock == 0 %} out-of-stock{% elif product.stock < 5 %} low-stock{% else %} in-stock{% endif %}">
+                    {{ product.stock }} {{ _('units') }}
+                </span>
+            </div>
+            
+            {% if product.stock > 0 %}
+                {% if current_user and current_user.account_type == 'company' %}
+                    <div class="company-message">
+                        <p>{{ _('company_cannot_buy_message') }} <a href="{{ url_for('company_products') }}">{{ _('my_products') }}</a>.</p>
+                    </div>
+                {% else %}
+                    <form method="POST" action="{{ url_for('add_to_cart') }}" class="product-detail-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="product_id" value="{{ product.id }}">
+                        
+                        <div class="form-group">
+                            <label for="quantity">{{ _('label_quantity') }}</label>
+                            <input type="number" 
+                                   id="quantity" 
+                                   name="quantity" 
+                                   min="1" 
+                                   max="{{ [5, product.stock]|min }}" 
+                                   value="1" 
+                                   title="{{ _('max_5_units') }} ({{ _('stock_available') }}: {{ product.stock }})"
+                                   required
+                                   class="quantity-input">
+                            <small>{{ _('max_5_units') }}</small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-large">
+                            {{ _('add_to_cart') }}
+                        </button>
+                    </form>
+                {% endif %}
+            {% else %}
+                <div class="out-of-stock-message">
+                    <p>{{ _('product_out_of_stock') }}</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Cambiar imatge principal quan es clica o es passa el rató sobre una miniatura
+document.addEventListener('DOMContentLoaded', function() {
+    const mainImage = document.getElementById('main-product-image');
+    const thumbnails = document.querySelectorAll('.product-detail-thumb');
+    
+    if (mainImage && thumbnails.length > 0) {
+        thumbnails.forEach(thumb => {
+            // Función para actualizar la imagen principal
+            const updateMainImage = function() {
+                const newImageSrc = this.getAttribute('data-image');
+                if (newImageSrc) {
+                    mainImage.src = newImageSrc;
+                    
+                    // Actualizar clase activa
+                    thumbnails.forEach(t => t.classList.remove('is-active'));
+                    this.classList.add('is-active');
+                }
+            };
+            
+            // Actualizar al pasar el ratón (hover)
+            thumb.addEventListener('mouseenter', updateMainImage);
+            
+            // También actualizar al hacer clic
+            thumb.addEventListener('click', updateMainImage);
+        });
+    }
+});
+</script>
+{% endblock %}
+

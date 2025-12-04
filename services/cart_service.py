@@ -123,7 +123,7 @@ class CartService:
         
         Args:
             session: Sessió de Flask
-            
+        
         Returns:
             Dict[int, int]: {product_id: quantity}
         """
@@ -146,7 +146,7 @@ class CartService:
         
         Args:
             session: Sessió de Flask
-            
+        
         Returns:
             Decimal: Total del carretó
         """

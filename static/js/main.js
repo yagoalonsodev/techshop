@@ -368,3 +368,104 @@ function showError(message) {
         flashDiv.remove();
     }, 5000);
 }
+
+/**
+ * Validar DNI espanyol
+ * Format: 8 números seguits d'una lletra de control
+ */
+function validarDNI(dni) {
+    // Formato
+    if (!/^\d{8}[A-Za-z]$/.test(dni)) return false;
+    
+    const letras = "TRWAGMYFPDXBNJZSQVHLCKE";
+    const numero = parseInt(dni.substring(0, 8), 10);
+    const letra = dni.charAt(8).toUpperCase();
+    const letraCorrecta = letras[numero % 23];
+    
+    return letra === letraCorrecta;
+}
+
+/**
+ * Validar NIE espanyol
+ * Format: X/Y/Z + 7 números + lletra de control
+ */
+function validarNIE(nie) {
+    // Formato
+    if (!/^[XYZ]\d{7}[A-Za-z]$/.test(nie)) return false;
+    
+    const letras = "TRWAGMYFPDXBNJZSQVHLCKE";
+    const inicial = nie.charAt(0).toUpperCase();
+    const letra = nie.slice(-1).toUpperCase();
+    
+    // Convertir inicial
+    const valores = { X: 0, Y: 1, Z: 2 };
+    const numero = valores[inicial] + nie.substring(1, 8);
+    const letraCorrecta = letras[numero % 23];
+    
+    return letra === letraCorrecta;
+}
+
+/**
+ * Validar CIF espanyol
+ * Format: Lletra + 7 números + caràcter de control
+ */
+function validarCIF(cif) {
+    if (!/^[ABCDEFGHJKLMNPQRSUVW]\d{7}[0-9A-J]$/.test(cif)) return false;
+    
+    const letraInicial = cif.charAt(0).toUpperCase();
+    const digitos = cif.substring(1, 8);
+    const controlChar = cif.charAt(8).toUpperCase();
+    
+    let sumaPares = 0;
+    let sumaImpares = 0;
+    
+    for (let i = 0; i < digitos.length; i++) {
+        const n = parseInt(digitos.charAt(i), 10);
+        if ((i + 1) % 2 === 0) {
+            sumaPares += n;
+        } else {
+            let mult = n * 2;
+            sumaImpares += Math.floor(mult / 10) + (mult % 10);
+        }
+    }
+    
+    const suma = sumaPares + sumaImpares;
+    const unidad = suma % 10;
+    let controlNum = (10 - unidad) % 10;
+    const tablaControl = "JABCDEFGHI";
+    const controlLetra = tablaControl[controlNum];
+    
+    // Reglas según letra inicial
+    if ("ABEH".includes(letraInicial)) {
+        return controlChar === String(controlNum);
+    }
+    if ("KPQS".includes(letraInicial)) {
+        return controlChar === controlLetra;
+    }
+    
+    // Otros casos: ambos son válidos
+    return controlChar === String(controlNum) || controlChar === controlLetra;
+}
+
+/**
+ * Validar DNI o NIE (per usuaris individuals)
+ */
+function validarDNI_NIE(dni) {
+    if (!dni || dni.trim().length === 0) return false;
+    const dniUpper = dni.trim().toUpperCase();
+    
+    // Si comienza con X, Y o Z, es NIE
+    if (/^[XYZ]/.test(dniUpper)) {
+        return validarNIE(dniUpper);
+    }
+    // Si no, es DNI
+    return validarDNI(dniUpper);
+}
+
+/**
+ * Validar CIF (per empreses)
+ */
+function validarCIF_NIF(nif) {
+    if (!nif || nif.trim().length === 0) return false;
+    return validarCIF(nif.trim().toUpperCase());
+}

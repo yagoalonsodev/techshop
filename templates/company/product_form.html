@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}{% if product %}Editar{% else %}Crear{% endif %} {{ _('product_col') }} - TechShop{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <h2>{% if product %}Editar {{ _('product_col') }}{% else %}Crear Nou {{ _('product_col') }}{% endif %}</h2>
+    
+    <form method="POST" 
+          action="{% if product %}{{ url_for('company_edit_product', product_id=product.id) }}{% else %}{{ url_for('company_create_product') }}{% endif %}" 
+          class="admin-form"
+          enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <div class="form-group">
+            <label for="name">{{ _('label_product_name') }}</label>
+            <input type="text" 
+                   id="name" 
+                   name="name" 
+                   value="{% if product %}{{ product.name }}{% endif %}"
+                   maxlength="100"
+                   required
+                   class="form-input">
+            <small>{{ _('validation_max_length')|replace('{max}', '100') }}</small>
+        </div>
+
+        <div class="form-group">
+            <label for="price">{{ _('label_price') }} (€):</label>
+            <input type="number" 
+                   id="price" 
+                   name="price" 
+                   value="{% if product %}{{ product.price }}{% else %}0.00{% endif %}"
+                   min="0"
+                   step="0.01"
+                   required
+                   class="form-input">
+            <small>{{ _('label_price') }} en euros (ex: 19.99)</small>
+        </div>
+
+        <div class="form-group">
+            <label for="stock">{{ _('label_stock') }}</label>
+            <input type="number" 
+                   id="stock" 
+                   name="stock" 
+                   value="{% if product %}{{ product.stock }}{% else %}0{% endif %}"
+                   min="0"
+                   required
+                   class="form-input">
+            <small>{{ _('label_stock') }} disponible en inventari</small>
+        </div>
+
+        <div class="form-group">
+            <label for="images">{{ _('image_not_available')|replace('no disponible', 'del producte') }} (màxim 4):</label>
+            <input type="file" 
+                   id="images" 
+                   name="images" 
+                   accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                   multiple
+                   class="form-input">
+            <small>{{ _('upload_images_help') }}</small>
+            <div id="image-preview" class="image-preview-container"></div>
+        </div>
+
+        {% if product %}
+            <div class="form-group">
+                <label>{{ _('image_not_available')|replace('no disponible', 'Actuals') }}:</label>
+                <div class="current-images">
+                    <p class="info-text">{{ _('info') }}: {{ _('current_images_info') }}</p>
+                    <p class="info-text">{{ _('view_current_images') }} <a href="{{ url_for('show_products') }}">{{ _('page_products') }}</a>.</p>
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success btn-large">
+                {% if product %}{{ _('btn_update') }}{% else %}{{ _('create_product') }}{% endif %}
+            </button>
+            <a href="{{ url_for('company_products') }}" class="btn btn-secondary">
+                {{ _('btn_cancel') }}
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('images');
+    const previewContainer = document.getElementById('image-preview');
+    
+    if (fileInput && previewContainer) {
+        fileInput.addEventListener('change', function(e) {
+            previewContainer.innerHTML = '';
+            const files = Array.from(e.target.files);
+            
+            if (files.length > 4) {
+                alert('Màxim 4 imatges permeses. S\'han seleccionat ' + files.length + ' imatges.');
+                fileInput.value = '';
+                return;
+            }
+            
+            files.forEach((file, index) => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'preview-image';
+                        img.style.maxWidth = '150px';
+                        img.style.maxHeight = '150px';
+                        img.style.margin = '5px';
+                        previewContainer.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+    }
+});
+</script>
+{% endblock %}
+

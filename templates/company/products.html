@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('manage_my_products') }} - TechShop{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h2>{{ _('manage_my_products') }}</h2>
+        <a href="{{ url_for('show_products') }}" class="btn btn-secondary">{{ _('back_to_products') }}</a>
+        <a href="{{ url_for('company_create_product') }}" class="btn btn-primary">{{ _('create_product') }}</a>
+    </div>
+    
+    {% if products %}
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>{{ _('table_id') }}</th>
+                    <th>{{ _('table_name') }}</th>
+                    <th>{{ _('table_price') }}</th>
+                    <th>{{ _('table_stock') }}</th>
+                    <th>{{ _('table_actions') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                    <tr>
+                        <td>{{ product.id }}</td>
+                        <td>{{ product.name }}</td>
+                        <td>{{ "%.2f"|format(product.price) }}€</td>
+                        <td>{{ product.stock }}</td>
+                        <td class="actions">
+                            <a href="{{ url_for('company_edit_product', product_id=product.id) }}" class="btn btn-small btn-primary">{{ _('btn_edit') }}</a>
+                            <form method="POST" action="{{ url_for('company_delete_product', product_id=product.id) }}" style="display: inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('{{ _('confirm_delete_product_sales') }}');">{{ _('btn_delete') }}</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="no-data">{{ _('no_products_yet') }} <a href="{{ url_for('company_create_product') }}">{{ _('create_first_product_link') }}</a>.</p>
+    {% endif %}
+</div>
+{% endblock %}
+

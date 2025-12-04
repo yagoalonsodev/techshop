@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ca">
+<html lang="{{ current_language }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,17 +13,44 @@
                 <a href="{{ url_for('show_products') }}" aria-label="Anar a la pàgina de productes">TechShop</a>
             </h1>
             <nav>
-                <a href="{{ url_for('show_products') }}">Productes</a>
+                <a href="{{ url_for('show_products') }}">{{ _('products') }}</a>
                 {% if current_user %}
-                    <span class="user-info">Hola, {{ current_user.username }}</span>
-                    <a href="{{ url_for('logout') }}" class="btn-logout">Tancar Sessió</a>
+                    <a href="{{ url_for('profile') }}" class="user-info">{{ _('hello') }}, {{ current_user.username }}</a>
+                    {% if current_user.is_admin() %}
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn-admin">{{ _('admin') }}</a>
+                    {% endif %}
+                    {% if current_user.account_type == 'company' %}
+                        <a href="{{ url_for('company_products') }}" class="btn-company">{{ _('my_products') }}</a>
+                    {% endif %}
+                    <a href="{{ url_for('logout') }}" class="logout-link" aria-label="{{ _('logout') }}">
+                        <span class="sr-only">{{ _('logout') }}</span>
+                        <img src="{{ url_for('static', filename='img/logout/1.png') }}" alt="" id="logout-icon">
+                    </a>
                 {% else %}
-                    <a href="{{ url_for('login') }}" class="btn-login">Iniciar Sessió</a>
+                    <a href="{{ url_for('login') }}" class="btn-login">{{ _('login') }}</a>
                 {% endif %}
-                <a href="{{ url_for('checkout') }}" class="cart-link" aria-label="Veure carretó">
-                    <span class="sr-only">Carretó</span>
+                {% if not current_user or current_user.account_type != 'company' %}
+                <a href="{{ url_for('checkout') }}" class="cart-link" aria-label="{{ _('cart') }}">
+                    <span class="sr-only">{{ _('cart') }}</span>
                     <img src="{{ url_for('static', filename='img/carrito/1.png') }}" alt="" id="cart-icon">
                 </a>
+                {% endif %}
+                <!-- Selector de idioma -->
+                <div class="language-selector">
+                    {% for lang in available_languages %}
+                        <a href="{{ url_for('set_language', lang=lang) }}" 
+                           class="language-flag {% if lang == current_language %}active{% endif %}"
+                           aria-label="{{ get_language_name(lang) }}">
+                            {% if lang == 'cat' %}
+                                <img src="{{ url_for('static', filename='img/flags/cat/1.svg') }}" alt="Català">
+                            {% elif lang == 'esp' %}
+                                <img src="{{ url_for('static', filename='img/flags/esp/1.png') }}" alt="Español">
+                            {% elif lang == 'eng' %}
+                                <img src="{{ url_for('static', filename='img/flags/eng/1.png') }}" alt="English">
+                            {% endif %}
+                        </a>
+                    {% endfor %}
+                </div>
             </nav>
         </div>
     </header>
@@ -44,7 +71,7 @@
     </main>
 
     <footer>
-        <p>&copy; 2024 TechShop - Pràctica d'Intel·ligència Artificial</p>
+        <p>{{ _('footer_text') }}</p>
     </footer>
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>

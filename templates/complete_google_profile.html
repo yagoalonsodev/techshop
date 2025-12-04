@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Completar Perfil - TechShop{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <h2>{{ _('complete_profile') }}</h2>
+    
+    <div class="google-info-box">
+        <p><strong>{{ _('google_login_success') }}</strong></p>
+        <p>{{ _('table_email') }} <strong>{{ google_email }}</strong></p>
+        {% if google_name %}
+        <p>{{ _('label_name') }}: <strong>{{ google_name }}</strong></p>
+        {% endif %}
+        <p>{{ _('complete_profile_info') }}</p>
+    </div>
+    
+    <form method="POST" action="{{ url_for('complete_google_profile') }}" id="complete-profile-form" class="auth-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <div class="form-group">
+            <label for="username">{{ _('label_username') }}</label>
+            <input type="text" 
+                   id="username" 
+                   name="username" 
+                   minlength="4" 
+                   maxlength="20" 
+                   pattern="[a-zA-Z0-9_]+"
+                   title="{{ _('help_username') }}"
+                   required
+                   class="form-input"
+                   autocomplete="username"
+                   placeholder="{{ _('help_username_placeholder') }}">
+            <small>{{ _('help_username') }}</small>
+        </div>
+
+        <div class="form-group">
+            <label for="address">{{ _('label_address') }}</label>
+            <textarea id="address" 
+                      name="address" 
+                      minlength="10"
+                      required
+                      class="form-input"
+                      rows="3"
+                      placeholder="{{ _('help_address_placeholder') }}"></textarea>
+            <small>{{ _('help_address') }}</small>
+        </div>
+
+        <div class="form-group">
+            <label for="dni">{{ _('dni_optional') }}:</label>
+            <input type="text" 
+                   id="dni" 
+                   name="dni" 
+                   pattern="^(\d{8}[A-Z]|[XYZ]\d{7}[A-Z])$"
+                   title="Format: 8 números + lletra (DNI) o X/Y/Z + 7 números + lletra (NIE)"
+                   class="form-input"
+                   placeholder="12345678A o X1234567A"
+                   autocomplete="off"
+                   onblur="validateDNI_NIE(this)">
+            <small>{{ _('dni_optional_help') }}</small>
+        </div>
+
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" 
+                       id="accept_policies" 
+                       name="accept_policies" 
+                       required>
+                <span>{{ _('accept_policies') }} <a href="{{ url_for('show_policies', return_to='complete_google_profile') }}" target="_blank" id="policies-link">{{ _('policies_title') }}</a></span>
+            </label>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-large">
+                {{ _('complete_registration') }}
+            </button>
+            <a href="{{ url_for('logout') }}" class="btn btn-secondary">
+                {{ _('btn_cancel') }}
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+// Traducciones para validación
+const translations = {
+    error_dni_invalid: {{ _('error_dni_invalid')|tojson }},
+    error_nif_invalid: {{ _('error_nif_invalid')|tojson }}
+};
+
+// Validar DNI/NIE en tiempo real
+function validateDNI_NIE(input) {
+    const value = input.value.trim().toUpperCase();
+    if (value.length === 0) {
+        clearFieldError(input);
+        return;
+    }
+    
+    if (typeof validarDNI_NIE === 'function' && !validarDNI_NIE(value)) {
+        showFieldError(input, translations.error_dni_invalid);
+    } else {
+        clearFieldError(input);
+    }
+}
+
+// Manejar aceptación de políticas desde la ventana de políticas
+document.addEventListener('DOMContentLoaded', function() {
+    // Si se viene de la página de políticas, habilitar y marcar el checkbox
+    if (sessionStorage.getItem('policies_accepted') === 'true') {
+        const checkbox = document.getElementById('accept_policies');
+        if (checkbox) {
+            checkbox.disabled = false;
+            checkbox.checked = true;
+        }
+    }
+    
+    // Detectar cuando se abre la ventana de políticas
+    const policiesLink = document.getElementById('policies-link');
+    if (policiesLink) {
+        policiesLink.addEventListener('click', function() {
+            // Marcar que se ha abierto la página de políticas
+            sessionStorage.setItem('policies_opened', 'true');
+        });
+    }
+    
+    // Escuchar mensajes de la ventana de políticas
+    window.addEventListener('message', function(event) {
+        if (event.data === 'policies_accepted') {
+            const checkbox = document.getElementById('accept_policies');
+            if (checkbox) {
+                checkbox.disabled = false;
+                checkbox.checked = true;
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
+
