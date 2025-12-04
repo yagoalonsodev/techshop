@@ -24,27 +24,87 @@ El projecte segueix el patró **Model-Vista-Controlador (MVC)** amb una arquitec
 
 ```
 TechShop/
-├── app.py                    # Aplicació principal Flask
-├── models.py                 # Classes de dades (Product, User, Order, OrderItem)
-├── services/                 # Lògica de negoci
+├── app.py                    # Aplicació principal Flask (configuració i blueprints)
+├── models.py                 # Compatibilitat (importa des de models/)
+│
+├── models/                   # Modelos de datos (capa de datos)
+│   ├── product.py           # Modelo Product
+│   ├── user.py              # Modelo User
+│   ├── order.py             # Modelo Order
+│   └── order_item.py        # Modelo OrderItem
+│
+├── routes/                   # Rutas HTTP (capa de control - Flask Blueprints)
+│   ├── main.py              # Rutas principales (productos, carrito, checkout)
+│   ├── auth.py              # Autenticación (login, register, OAuth)
+│   ├── profile.py           # Perfil de usuario
+│   ├── admin.py             # Panel de administración
+│   ├── company.py           # Gestión de productos para empresas
+│   └── utils.py             # Utilidades (idioma, políticas)
+│
+├── services/                 # Lògica de negoci (capa de negocio)
 │   ├── cart_service.py      # Gestió del carretó
-│   └── order_service.py     # Gestió de comandes
-├── templates/                # Plantilles HTML
+│   ├── order_service.py     # Gestió de comandes
+│   ├── user_service.py      # Gestió d'usuaris
+│   ├── product_service.py   # Gestió de productes
+│   ├── admin_service.py    # Funcionalitats d'administració
+│   ├── company_service.py   # Gestió per empreses
+│   └── recommendation_service.py # Sistema de recomanacions
+│
+├── templates/                # Plantilles HTML (capa de presentació)
 │   ├── base.html            # Plantilla base
 │   ├── products.html        # Catàleg de productes
+│   ├── product_detail.html  # Detall de producte
 │   ├── checkout.html        # Pàgina de checkout
-│   └── order_confirmation.html # Confirmació de comanda
+│   ├── order_confirmation.html # Confirmació de comanda
+│   ├── login.html           # Pàgina de login
+│   ├── register.html        # Pàgina de registre
+│   ├── profile.html         # Perfil d'usuari
+│   ├── admin/               # Templates d'administració
+│   └── company/             # Templates per empreses
+│
 ├── static/                   # Arxius estàtics
 │   ├── css/style.css        # Estils CSS
 │   ├── js/main.js           # JavaScript
-│   └── img/
-│       └── products/        # Carpeta per a les imatges dels productes (per ID)
-├── database_schema.sql       # Esquema de la base de dades
-├── init_database.py          # Script per inicialitzar la BD
-├── techshop.db              # Base de dades SQLite (es genera)
+│   └── img/                 # Imatges (productes, icones, banderes)
+│
+├── utils/                    # Utilitats compartides
+│   ├── validators.py        # Validadors (DNI, NIE, CIF)
+│   ├── email_service.py     # Servei d'emails
+│   ├── invoice_generator.py # Generador de factures PDF
+│   └── translations.py      # Sistema de traduccions (i18n)
+│
+├── tests/                    # Tests organitzats per mòdul
+│   ├── run_tests.py         # Script per executar tots els tests
+│   ├── test_common.py       # Utilitats compartides per tests
+│   ├── test_models.py       # Tests de models
+│   ├── test_*_service.py    # Tests de serveis
+│   └── test_web_routes.py   # Tests de rutas web
+│
+├── scripts/                  # Scripts d'utilitat
+│   ├── init_database.py     # Inicialitzar base de dades
+│   ├── create_admin_user.py # Crear usuari administrador
+│   └── generate_dataset.py   # Generar dataset de proves
+│
+├── migrations/               # Scripts de migració de BD
+│   ├── migrate_database.py
+│   ├── migrate_add_company_id.py
+│   └── migrate_add_dni_nif.py
+│
+├── docs/                     # Documentació
+│   ├── reglas_techshop.md   # Regles de la pràctica
+│   ├── memoria.md           # Memòria del projecte
+│   ├── database_schema.sql  # Esquema de la base de dades
+│   └── img/                 # Imatges de documentació
+│
+├── data/                     # Arxius de dades
+│   └── techshop_purchase_experiences.csv
+│
+├── notebooks/                # Notebooks Jupyter
+│   └── analisi_dataset.ipynb
+│
 ├── requirements.txt          # Dependències Python
-├── .gitignore               # Arxius a ignorar per Git
-└── README.md                # Aquest arxiu
+├── STRUCTURE.md              # Documentació de l'estructura
+└── README.md                 # Aquest arxiu
 ```
 
 ## 🗃️ Base de Dades
@@ -114,7 +174,7 @@ pip install -r requirements.txt
 4. **Inicialitzar la base de dades**
 
 ```bash
-python3 init_database.py
+python3 scripts/init_database.py
 ```
 
 Aquest script crearà la base de dades `techshop.db` amb dades de prova (8 productes electrònics).
@@ -216,15 +276,21 @@ Després d'executar `init_database.py`, la base de dades conté 8 productes:
 
 ## 🧪 Test Cases
 
-El projecte inclou un script exhaustiu de proves (`test_everything.py`) que valida totes les funcionalitats de l'aplicació. El script conté **80 test cases** organitzats en diferents categories.
+El projecte inclou una suite completa de tests organitzats modularment que valida totes les funcionalitats de l'aplicació. El projecte conté **180 test cases** organitzats en diferents categories.
 
 ### Executar els Tests
 
 Per executar tots els test cases:
 
 ```bash
-python3 test_everything.py
+# Desde la raíz del proyecto:
+python3 tests/run_tests.py
+
+# O usando el script bash:
+bash tests/run_tests.sh
 ```
+
+**Resultado:** Todos los 180 tests pasando (100% de éxito)
 
 El script mostrarà un resum amb el nombre total de proves, les que han passat i les que han fallat, juntament amb un percentatge d'èxit.
 
@@ -327,12 +393,15 @@ El script mostrarà un resum amb el nombre total de proves, les que han passat i
 
 ### Resum de Test Cases
 
-- **Total de test cases**: 80
-- **Cobertura**: Models, Serveis, Validacions, Seguretat, Recomanacions i Integració Web
+- **Total de test cases**: 180
+- **Cobertura**: Models, Serveis, Validacions, Seguretat, Recomanacions, Integració Web, Autenticació, Perfil, Administració
 - **Tipus de proves**: Unitàries, d'integració i end-to-end
 - **Gestió d'errors**: Tests específics per errors de BD, valors invàlids i casos límit
+- **Organització**: Tests modulars en `tests/` organitzats per funcionalitat
 
 Tots els tests utilitzen una base de dades de prova (`test.db`) que es crea i s'elimina automàticament durant l'execució, assegurant que no s'afecti la base de dades principal de l'aplicació.
+
+**Ver `tests/README.md` para más detalles sobre la estructura de tests.**
 
 ## 🛠️ Desenvolupament
 
@@ -354,9 +423,21 @@ Tots els tests utilitzen una base de dades de prova (`test.db`) que es crea i s'
 
 ## 📝 Documentació Addicional
 
-- `reglas_techshop.md`: Regles i requisits de la pràctica
-- `memoria_ia.md`: Documentació de l'ús d'IA en el desenvolupament
-- `ESTRUCTURA_FINAL.md`: Detalls de l'estructura final del projecte
+### Documentación Principal:
+- `docs/reglas_techshop.md`: Regles i requisits de la pràctica
+- `docs/memoria.md`: Memòria del projecte
+- `STRUCTURE.md`: Detalls de l'estructura del projecte
+
+### Documentación por Carpeta:
+- `models/README.md`: Documentación de modelos de datos
+- `routes/README.md`: Documentación de rutas y blueprints
+- `services/README.md`: Documentación de servicios y lógica de negocio
+- `templates/README.md`: Documentación de plantillas HTML
+- `static/README.md`: Documentación de recursos estáticos
+- `utils/README.md`: Documentación de utilidades
+- `tests/README.md`: Documentación de tests
+- `scripts/README.md`: Documentación de scripts de utilidad
+- `migrations/README.md`: Documentación de migraciones de BD
 
 ## 👤 Autor
 
@@ -368,6 +449,5 @@ Aquest projecte és amb finalitats educatives.
 
 ---
 
-**Data de creació**: Octubre 2024  
+**Data de creació**: Novembre 2025  
 **Versió**: 1.0
-
